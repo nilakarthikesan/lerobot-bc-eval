@@ -1,0 +1,5 @@
+lerobot[pusht,aloha]==0.6.0   # pinned; includes gym-pusht and gym-aloha sim envs
+torch>=2.2
+matplotlib>=3.8
+viser>=1.0                    # 3D visualization of EE predictions (ALOHA)
+imageio[ffmpeg]>=2.34         # rollout video export
