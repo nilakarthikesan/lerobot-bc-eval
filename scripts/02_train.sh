@@ -15,22 +15,25 @@ case "$MODE" in
       --output_dir=outputs/smoke_diffusion
     ;;
   diffusion)
-    # Full run (GPU). Hold out the last ~10% of episodes for mock deployment.
+    # Full run (GPU). Episodes 185-205 held out for mock deployment (DESIGN.md §2).
     lerobot-train \
       --policy.type=diffusion \
       --dataset.repo_id=lerobot/pusht \
+      --dataset.episodes="[$(seq -s, 0 184)]" \
       --steps=100000 --batch_size=64 \
       --policy.device=cuda \
-      --env.type=pusht --eval_freq=10000 \
+      --env.type=pusht --env_eval_freq=10000 \
       --output_dir=outputs/train/diffusion_pusht
     ;;
   act)
+    # Episodes 45-49 held out for mock deployment (DESIGN.md §2).
     lerobot-train \
       --policy.type=act \
       --dataset.repo_id=lerobot/aloha_sim_insertion_human \
+      --dataset.episodes="[$(seq -s, 0 44)]" \
       --steps=100000 --batch_size=8 \
       --policy.device=cuda \
-      --env.type=aloha --eval_freq=10000 \
+      --env.type=aloha --env_eval_freq=10000 \
       --output_dir=outputs/train/act_aloha
     ;;
   *)

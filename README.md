@@ -24,8 +24,8 @@ Full training runs target Georgia Tech GPUs (PACE / AI Makerspace) — see DESIG
 
 ## Status
 
-- [ ] M0 environment; pusht dataset loads + video decodes
-- [ ] M1 dataset EDA in `reports/`
+- [x] M0 environment; pusht dataset loads + video decodes (lerobot 0.6.0, torch 2.11, Python 3.12)
+- [x] M1 dataset EDA in `reports/eda/` (split fixed: pusht 0-184 train / 185-205 test; aloha 0-44 / 45-49)
 - [ ] M2 local smoke training run (MPS)
 - [ ] M3 full ACT + diffusion training runs
 - [ ] M4 mock deployment: held-out replay + closed-loop `lerobot-eval`

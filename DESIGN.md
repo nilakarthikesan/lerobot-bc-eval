@@ -34,12 +34,23 @@ Pick one dataset per policy, matching each policy to the task it was designed fo
 
 | Policy | Dataset | Why |
 |--------|---------|-----|
-| Diffusion | `lerobot/pusht` | The canonical Diffusion Policy benchmark. Small (~200 episodes, 2D push task) → trains in hours, feasible even without a big GPU. Has a Gym env (`gym-pusht`) for closed-loop rollout. |
-| ACT | `lerobot/aloha_sim_insertion_human` | The task ACT was built for (bimanual ALOHA, sim). Has `gym-aloha` for closed-loop rollout. Real-robot alternative: `lerobot/aloha_mobile_cabinet` (the one shown in the meeting) — no sim env, so evaluation is offline-only. |
+| Diffusion | `lerobot/pusht` | The canonical Diffusion Policy benchmark. Small (~200 episodes, 2D push task) → trains in hours, feasible even without a big GPU. Has a Gym env (`gym-pusht`) for closed-loop rollout. The task is deliberately multimodal (many valid push directions), so it showcases exactly what diffusion is for. |
+| ACT | `lerobot/aloha_sim_insertion_human` | The task ACT was built for (bimanual ALOHA, sim). Has `gym-aloha` for closed-loop rollout, so both halves of the mock deployment are possible. |
+
+**Decision:** sim dataset is primary for ACT. `lerobot/aloha_mobile_cabinet` (the real-robot
+dataset shown in the meeting) is a **stretch goal** — more impressive visuals, but it has no
+sim env, so evaluation there would be offline-only.
 
 **Split:** `LeRobotDataset` is episode-indexed. Reserve the last ~10% of episode indices as
 the held-out test set and train with `--dataset.episodes="[0,...,N_train-1]"`. The held-out
 episodes are never seen in training and become the "mock deployment" input.
+
+Exact split (fixed from the M1 EDA, used everywhere downstream):
+
+| Dataset | Episodes | Train | Held-out test |
+|---------|----------|-------|---------------|
+| `lerobot/pusht` | 206 | 0–184 (185) | 185–205 (21) |
+| `lerobot/aloha_sim_insertion_human` | 50 | 0–44 (45) | 45–49 (5) |
 
 ## 3. Pipeline
 
@@ -53,8 +64,9 @@ episodes are never seen in training and become the "mock deployment" input.
 ```
 
 ### Stage 0 — Environment
-- Python 3.10+, `pip install "lerobot[pusht,aloha]"` (pulls gym envs). Pin the version in
-  `requirements.txt` for reproducibility.
+- Python 3.10+, `pip install "lerobot[training,pusht,aloha]==0.6.0"`. As of v0.6.0 the base
+  install no longer includes training deps (`training` extra required) and the minimum
+  PyTorch is **2.7**. Pin everything in `requirements.txt` for reproducibility.
 - Verify dataset streaming: load a few episodes of `lerobot/pusht` and decode video frames.
 
 ### Stage 1 — Dataset exploration (`scripts/01_explore_dataset.py`)
@@ -71,30 +83,36 @@ lerobot-train --policy.type=diffusion --dataset.repo_id=lerobot/pusht \
 ```
 
 Full runs on Georgia Tech compute (PACE / AI Makerspace H100s — access confirmation is an
-open action item; fallback: Colab/Lightning GPU or an overnight MPS run at reduced steps):
+open action item; fallbacks in §6, primarily HF Jobs cloud training):
 
 ```bash
 # Diffusion on PushT
 lerobot-train --policy.type=diffusion --dataset.repo_id=lerobot/pusht \
-  --dataset.episodes="[0..183]" --steps=100000 --batch_size=64 \
+  --dataset.episodes="[0..184]" --steps=100000 --batch_size=64 \
   --policy.device=cuda --output_dir=outputs/train/diffusion_pusht \
-  --eval_freq=10000 --env.type=pusht
+  --env_eval_freq=10000 --env.type=pusht
 
 # ACT on ALOHA sim insertion
 lerobot-train --policy.type=act --dataset.repo_id=lerobot/aloha_sim_insertion_human \
   --dataset.episodes="[0..44]" --steps=100000 --batch_size=8 \
   --policy.device=cuda --output_dir=outputs/train/act_aloha \
-  --eval_freq=10000 --env.type=aloha
+  --env_eval_freq=10000 --env.type=aloha
 ```
 
 Track loss curves (WandB via `--wandb.enable=true`, or the local logs).
 
 ### Stage 3 — Mock deployment (the core deliverable)
-Two complementary evaluations:
+Two complementary evaluations. They answer **different questions**, and the literature is
+clear that open-loop action error is a weak predictor of closed-loop success: small errors
+compound during rollout and push the policy into states absent from training data
+(covariate shift). Recent work even shows policies with *higher* validation MSE achieving
+*higher* closed-loop success (arXiv:2604.02523). We therefore report both and treat any
+disagreement between them as a finding to discuss in the writeup.
 
 **(a) Offline open-loop replay on held-out episodes** (`scripts/03_mock_deploy.py`)
 - For each test episode, step through its observations, query the policy, and record
   predicted action chunks/sequences vs. the ground-truth demonstrator actions.
+  (v0.6.0 added offline batch inference support for ACT and Diffusion, which this uses.)
 - Metrics: per-step action MSE, end-effector position error over a prediction horizon.
 - End-effector extraction: PushT's action *is* the 2D end-effector target, so predictions
   plot directly onto the workspace image. For ALOHA, actions are joint positions → run
@@ -147,8 +165,11 @@ lerobot-bc-eval/
 - **Full runs:** Georgia Tech PACE / AI Makerspace (160× H100) / Phoenix cluster — she
   looked these up during the meeting; confirming access is an **open action item**. On an
   H100, both runs are a few hours each.
-- **Fallback:** reduced-step overnight runs on MPS, or a cloud GPU notebook. ACT at batch 8
-  is feasible on <8 GB; diffusion wants more, so PushT (low-res) keeps it tractable.
+- **Fallback (concrete, new in v0.6.0):** HF Jobs cloud training — the same `lerobot-train`
+  command with `--job.target=a10g-small` runs remotely and pushes the checkpoint to the Hub
+  (pay-as-you-go billing). GPU access is therefore never a hard blocker.
+- **Last resort:** reduced-step overnight runs on MPS. ACT at batch 8 is feasible on <8 GB;
+  diffusion wants more, so PushT (low-res) keeps it tractable.
 
 ## 7. Risks & mitigations
 
@@ -159,13 +180,21 @@ lerobot-bc-eval/
 - **MPS quirks** (float64 ops unsupported): known workaround is CPU fallback env var; smoke
   test catches this early.
 - **No GPU access confirmed yet:** M0–M2 and all of the offline eval tooling work locally,
-  so training compute is the only blocker and it is parallelizable with everything else.
+  and HF Jobs (§6) provides a pay-as-you-go path that removes the hard dependency on
+  Georgia Tech cluster access.
 - **ALOHA FK for EE extraction is extra work:** joint-space comparison is an acceptable
   minimum; FK via the ALOHA URDF is the stretch version.
 
 ## 8. What gets sent to Irmak
 
-1. Loss curves for both policies + final checkpoints (Hub-pushed if allowed).
-2. Mock-deployment metrics: action MSE on held-out episodes, closed-loop success rates.
-3. Figures/videos: predicted vs. ground-truth end-effector trajectories, rollout videos.
-4. Notes on anything broken or confusing in LeRobot (she explicitly asked for this).
+**Decision — the artifact is three things:**
+
+1. **Written report** (`reports/REPORT.md`, exportable to PDF) containing:
+   - Loss curves for both policies + final checkpoints (Hub-pushed if allowed).
+   - Mock-deployment metrics table: action MSE on held-out episodes, closed-loop success
+     rates — and discussion of where the two evaluations disagree (see Stage 3).
+   - Figures/videos: predicted vs. ground-truth end-effector trajectories, rollout videos.
+   - Notes on anything broken or confusing in LeRobot (she explicitly asked for this).
+2. **The public GitHub repo** as the reproducible artifact (scripts + pinned deps).
+3. **Viser interactive 3D scene** of predicted vs. ground-truth trajectories as the live
+   demo moment.
