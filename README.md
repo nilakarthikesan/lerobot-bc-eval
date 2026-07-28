@@ -4,7 +4,8 @@ Behavior cloning with [LeRobot](https://github.com/huggingface/lerobot): train *
 **Diffusion Policy** on LeRobot datasets, then run a mock deployment on held-out episodes
 and visualize the policies' end-effector predictions against ground truth.
 
-See [DESIGN.md](DESIGN.md) for the full system design.
+See [DESIGN.md](DESIGN.md) for the full system design and [NOTES.md](NOTES.md) for
+per-stage learning notes.
 
 ## Quickstart
 
