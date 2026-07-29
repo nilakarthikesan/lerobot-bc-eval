@@ -88,18 +88,20 @@ open action item; fallbacks in §6, primarily HF Jobs cloud training):
 ```bash
 # Diffusion on PushT
 lerobot-train --policy.type=diffusion --dataset.repo_id=lerobot/pusht \
-  --dataset.episodes="[0..184]" --steps=100000 --batch_size=64 \
+  --dataset.episodes="[0..184]" --steps=200000 --batch_size=64 --seed=100000 \
   --policy.device=cuda --output_dir=outputs/train/diffusion_pusht \
-  --env_eval_freq=10000 --env.type=pusht
+  --env_eval_freq=25000 --save_freq=25000 --env.type=pusht
 
 # ACT on ALOHA sim insertion
 lerobot-train --policy.type=act --dataset.repo_id=lerobot/aloha_sim_insertion_human \
   --dataset.episodes="[0..44]" --steps=100000 --batch_size=8 \
   --policy.device=cuda --output_dir=outputs/train/act_aloha \
-  --env_eval_freq=10000 --env.type=aloha
+  --env_eval_freq=20000 --save_freq=20000 --env.type=aloha
 ```
 
-Track loss curves (WandB via `--wandb.enable=true`, or the local logs).
+Track loss curves (WandB via `--wandb.enable=true`, or the local logs). The full
+component-by-component rationale for every training hyperparameter is in
+[NOTES_TRAINING.md](NOTES_TRAINING.md) (batch/steps/normalization/optimizer decisions).
 
 ### Stage 3 — Mock deployment (the core deliverable)
 Two complementary evaluations. They answer **different questions**, and the literature is

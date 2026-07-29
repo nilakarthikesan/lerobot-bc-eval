@@ -5,8 +5,9 @@ Behavior cloning with [LeRobot](https://github.com/huggingface/lerobot): train *
 and visualize the policies' end-effector predictions against ground truth.
 
 See [DESIGN.md](DESIGN.md) for the full system design, [NOTES.md](NOTES.md) for
-per-stage learning notes, and [NOTES_PIPELINE.md](NOTES_PIPELINE.md) for the pipeline
-implementation deep-dive.
+per-stage learning notes, [NOTES_PIPELINE.md](NOTES_PIPELINE.md) for the pipeline
+implementation deep-dive, and [NOTES_TRAINING.md](NOTES_TRAINING.md) for the training
+hyperparameter decision log.
 
 ## Quickstart
 
