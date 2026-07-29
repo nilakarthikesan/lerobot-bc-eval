@@ -12,11 +12,16 @@ behaved, which checkpoint we selected, and how it evaluates.
 
 | | |
 |---|---|
-| HF Jobs job | `6a699a7f15e81eca66a8da3d` ([job page](https://huggingface.co/jobs/nilakarthikesan/6a699a7f15e81eca66a8da3d)) |
+| HF Jobs job | `6a69a86fa9f4e0ab00b2c8ba` ([job page](https://huggingface.co/jobs/nilakarthikesan/6a69a86fa9f4e0ab00b2c8ba)) — 2nd launch, eval disabled |
 | Model repo | [nilakarthikesan/diffusion_pusht](https://huggingface.co/nilakarthikesan/diffusion_pusht) |
 | Hardware | `a100-large` (HF Jobs) |
 | State | **Training in progress** — final results tables below are filled on completion |
-| Measured throughput | ~9.1 step/s (~585 samples/s) at batch 64 → ~6 h for 200K steps |
+| Measured throughput | ~9.3 step/s (~585 samples/s) at batch 64 → ~6 h for 200K steps |
+
+> **Run note.** The first launch (`6a699a7f...`) trained cleanly to 25K (loss 0.011) and
+> pushed a `checkpoints/025000/` checkpoint, then **crashed at the in-sim eval** because the
+> HF Jobs image lacks `gym_pusht`. We removed `--env.type` and relaunched; closed-loop eval
+> now happens in M4. See [NOTES_TRAINING.md](NOTES_TRAINING.md) §Component 4 for the finding.
 
 ---
 
@@ -119,8 +124,9 @@ Loss is the denoising MSE (predicted vs actual noise), so absolute values are sm
 
 **Selection rule = by closed-loop rollout success, not by lowest loss** (per robomimic,
 [arXiv:2108.03298](https://arxiv.org/abs/2108.03298); the official card's best was 175K, not
-the last step). We read the in-training `env_eval_freq` success curve to pick the candidate,
-then confirm it in the M4 mock-deployment stage.
+the last step). Because in-training env eval is disabled on HF Jobs (see the run note above),
+we **evaluate the banked checkpoints in M4** (locally, with `gym_pusht`) and pick the best
+there — there is no in-training success curve for this run.
 
 | Checkpoint | In-training eval success | Selected? |
 |-----------|--------------------------|-----------|

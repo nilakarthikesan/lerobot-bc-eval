@@ -191,8 +191,17 @@ each policy's optimizer/scheduler preset), `save_checkpoint=True`.
     175k, ~65% success). Fewer steps under-trains diffusion.
   - ACT/ALOHA → **100_000** (default; ACT is data-efficient and converges faster).
   - **MPS smoke** → **2_000** (proves the path end to end; not meant to learn the task).
-- **Checkpoint + eval cadence.** `save_freq = env_eval_freq = 25_000` for diffusion,
-  `20_000` for ACT. Saving several checkpoints is essential for the next decision.
+- **Checkpoint cadence.** `save_freq = 25_000` for diffusion, `20_000` for ACT, each
+  pushed to the Hub. Saving several checkpoints is essential for the next decision.
+- **In-training env eval is DISABLED on HF Jobs (important finding).** The
+  `huggingface/lerobot-gpu:latest` image does **not** ship the `gym_pusht` / `gym_aloha`
+  environment packages, so passing `--env.type` makes the periodic sim-rollout eval crash
+  with `gymnasium.error.NamespaceNotFound` (it killed our first full diffusion run at the
+  25k eval, *after* the 25k checkpoint had already been saved). Fix: drop `--env.type`
+  from the HF Jobs commands so we train + checkpoint only, and move **closed-loop
+  evaluation + checkpoint selection into M4**, run locally where `lerobot[pusht,aloha]`
+  provides the envs. Consequence: no in-training success curve — we instead eval several
+  banked checkpoints in M4 and pick the best there.
 - **Checkpoint selection = by rollout success, not by loss.** Per robomimic
   (arXiv:2108.03298) and the official card (best at 175k, not the last step), the
   lowest-loss checkpoint is often not the best policy. We pick the M3 checkpoint using the

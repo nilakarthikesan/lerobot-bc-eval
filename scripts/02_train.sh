@@ -52,24 +52,28 @@ case "$MODE" in
     ;;
   hfjobs-diffusion)
     # Full diffusion run on HF Jobs (see training/NOTES_TRAINING.md for config rationale).
+    # NOTE: no --env.type here. The huggingface/lerobot-gpu image lacks gym_pusht, so
+    # in-training sim-rollout eval crashes (NamespaceNotFound). We train + checkpoint only;
+    # closed-loop eval / checkpoint selection happens in M4 locally where gym_pusht exists.
     lerobot-train \
       --policy.type=diffusion \
       --dataset.repo_id=lerobot/pusht \
       --dataset.episodes="[$(seq -s, 0 184)]" \
       --steps=200000 --batch_size=64 --seed=100000 \
-      --env.type=pusht --env_eval_freq=25000 --save_freq=25000 \
+      --save_freq=25000 \
       --policy.repo_id=nilakarthikesan/diffusion_pusht \
       --policy.push_to_hub=true --save_checkpoint_to_hub=true \
       --job.target=a100-large --job.timeout=12h
     ;;
   hfjobs-act)
     # Full ACT run on HF Jobs (see training/NOTES_TRAINING.md for config rationale).
+    # NOTE: no --env.type here (same reason as diffusion: gym_aloha absent in the image).
     lerobot-train \
       --policy.type=act \
       --dataset.repo_id=lerobot/aloha_sim_insertion_human \
       --dataset.episodes="[$(seq -s, 0 44)]" \
       --steps=100000 --batch_size=8 \
-      --env.type=aloha --env_eval_freq=20000 --save_freq=20000 \
+      --save_freq=20000 \
       --policy.repo_id=nilakarthikesan/act_aloha_insertion \
       --policy.push_to_hub=true --save_checkpoint_to_hub=true \
       --job.target=a100-large --job.timeout=12h

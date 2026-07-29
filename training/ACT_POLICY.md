@@ -12,11 +12,17 @@ what is specific to *this* policy.
 
 | | |
 |---|---|
-| HF Jobs job | `6a69a3b6a9f4e0ab00b2c84d` ([job page](https://huggingface.co/jobs/nilakarthikesan/6a69a3b6a9f4e0ab00b2c84d)) |
+| HF Jobs job | `6a69a9ada9f4e0ab00b2c8da` ([job page](https://huggingface.co/jobs/nilakarthikesan/6a69a9ada9f4e0ab00b2c8da)) — 2nd launch, eval disabled |
 | Model repo | [nilakarthikesan/act_aloha_insertion](https://huggingface.co/nilakarthikesan/act_aloha_insertion) |
 | Hardware | `a100-large` (HF Jobs) |
 | State | **Training in progress** — final results tables below are filled on completion |
-| Expected wall time | lighter than diffusion (batch 8, 100K steps) → a few hours |
+| Measured throughput | ~22 step/s at batch 8 → **~75 min** for 100K steps (much faster than diffusion) |
+
+> **Run note.** The first launch (`6a69a3b6...`) trained fine (~22 step/s, l1 ~0.081, KL
+> ~0.001 at 20K) but was cancelled because it was about to hit the same
+> `gym_aloha`-missing eval crash as diffusion. Relaunched with `--env.type` removed;
+> closed-loop eval happens in M4. **Watch the KL term** — at ~0.001 it is very small, worth
+> checking the latent isn't being ignored.
 
 ---
 
@@ -117,8 +123,9 @@ Track both loss terms:
 `save_freq=20000` → checkpoints at 20K, 40K, …, 100K, each pushed to the Hub.
 
 **Selection rule = by closed-loop rollout success, not lowest loss** (same rationale as the
-diffusion doc; robomimic [arXiv:2108.03298](https://arxiv.org/abs/2108.03298)). Use the
-in-training `env_eval_freq` success curve to pick the candidate, confirm in M4.
+diffusion doc; robomimic [arXiv:2108.03298](https://arxiv.org/abs/2108.03298)). In-training
+env eval is disabled on HF Jobs, so we **evaluate the banked checkpoints in M4** (locally,
+with `gym_aloha`) and pick the best there.
 
 | Checkpoint | In-training eval success | Selected? |
 |-----------|--------------------------|-----------|
