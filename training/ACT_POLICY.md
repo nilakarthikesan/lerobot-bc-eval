@@ -15,8 +15,9 @@ what is specific to *this* policy.
 | HF Jobs job | `6a69a9ada9f4e0ab00b2c8da` ([job page](https://huggingface.co/jobs/nilakarthikesan/6a69a9ada9f4e0ab00b2c8da)) — 2nd launch, eval disabled |
 | Model repo | [nilakarthikesan/act_aloha_insertion](https://huggingface.co/nilakarthikesan/act_aloha_insertion) |
 | Hardware | `a100-large` (HF Jobs) |
-| State | **Training in progress** — final results tables below are filled on completion |
-| Measured throughput | ~22 step/s at batch 8 → **~75 min** for 100K steps (much faster than diffusion) |
+| State | **Training COMPLETE** — 100K steps in 1h 18m; final model + 5 checkpoints on the Hub |
+| Measured throughput | ~21–22 step/s at batch 8 (~78 min wall for 100K steps) |
+| Checkpoints on Hub | `checkpoints/{020000,040000,060000,080000,100000}` + final model at repo root |
 
 > **Run note.** The first launch (`6a69a3b6...`) trained fine (~22 step/s, l1 ~0.081, KL
 > ~0.001 at 20K) but was cancelled because it was about to hit the same
@@ -108,13 +109,22 @@ lerobot-train \
 
 ## 5. Training dynamics
 
-Track both loss terms:
+Observed loss terms over the run (from the job log):
 
-| Step | Total loss | L1 recon | KL | Notes |
-|------|-----------|----------|----|----|
-| _fill from final log_ | | | | KL should stay > 0 |
+| Step | Total loss | L1 recon | KL (kld_loss) |
+|------|-----------|----------|----|
+| 400 | 3.084 | 0.400 | 0.268 |
+| 20K | ~0.092 | ~0.081 | ~0.001 |
+| 100K (final) | 0.042 | 0.042 | ~0.000 |
 
-- Full loss curves + periodic success metric: _attach on completion._
+- L1 reconstruction fell cleanly from 0.40 → 0.042; gradient norms settled to single digits.
+- **KL collapse (finding to note).** The KL term annealed to ~0 by 20K and stayed there, i.e.
+  the CVAE latent is effectively **ignored** by end of training — the policy is behaving as a
+  (near-)deterministic chunked regressor. This is a known/common outcome for ACT with a fixed
+  `kl_weight`; it usually still succeeds because action chunking alone handles this task's
+  structure. Flagged as something to (a) mention in the writeup and (b) optionally probe with
+  a `kl_weight` ablation. It does **not** block M4 evaluation.
+- Full loss curve for the report: reconstruct from the job log (`hf jobs logs ...`).
 
 ---
 
