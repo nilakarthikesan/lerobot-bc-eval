@@ -39,7 +39,42 @@ case "$MODE" in
       --env.type=aloha --env_eval_freq=20000 --save_freq=20000 \
       --output_dir=outputs/train/act_aloha
     ;;
+  hfjobs-smoke)
+    # Cloud smoke test on HF Jobs: short + timeboxed to measure cost/speed before the
+    # full run. Requires `hf auth login` first. Pushes a throwaway checkpoint to the Hub.
+    lerobot-train \
+      --policy.type=diffusion \
+      --dataset.repo_id=lerobot/pusht \
+      --steps=5000 --batch_size=64 --seed=100000 \
+      --policy.repo_id=nilakarthikesan/smoke_diffusion_pusht \
+      --policy.push_to_hub=true \
+      --job.target=a10g-small --job.timeout=1h
+    ;;
+  hfjobs-diffusion)
+    # Full diffusion run on HF Jobs (see NOTES_TRAINING.md for config rationale).
+    lerobot-train \
+      --policy.type=diffusion \
+      --dataset.repo_id=lerobot/pusht \
+      --dataset.episodes="[$(seq -s, 0 184)]" \
+      --steps=200000 --batch_size=64 --seed=100000 \
+      --env.type=pusht --env_eval_freq=25000 --save_freq=25000 \
+      --policy.repo_id=nilakarthikesan/diffusion_pusht \
+      --policy.push_to_hub=true --save_checkpoint_to_hub=true \
+      --job.target=a100-large --job.timeout=12h
+    ;;
+  hfjobs-act)
+    # Full ACT run on HF Jobs (see NOTES_TRAINING.md for config rationale).
+    lerobot-train \
+      --policy.type=act \
+      --dataset.repo_id=lerobot/aloha_sim_insertion_human \
+      --dataset.episodes="[$(seq -s, 0 44)]" \
+      --steps=100000 --batch_size=8 \
+      --env.type=aloha --env_eval_freq=20000 --save_freq=20000 \
+      --policy.repo_id=nilakarthikesan/act_aloha_insertion \
+      --policy.push_to_hub=true --save_checkpoint_to_hub=true \
+      --job.target=a100-large --job.timeout=12h
+    ;;
   *)
-    echo "usage: $0 [smoke|diffusion|act]" >&2; exit 1
+    echo "usage: $0 [smoke|diffusion|act|hfjobs-smoke|hfjobs-diffusion|hfjobs-act]" >&2; exit 1
     ;;
 esac
