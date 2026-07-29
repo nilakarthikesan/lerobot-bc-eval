@@ -7,8 +7,10 @@ Stage Three (the pipeline deep-dive: how each remaining stage is implemented and
 they flow together) lives in its own document: [NOTES_PIPELINE.md](NOTES_PIPELINE.md).
 
 The end-to-end training decision log (dataloader, normalization, policy modules,
-training loop — every hyperparameter as a deliberate choice) lives in
-[NOTES_TRAINING.md](NOTES_TRAINING.md).
+training loop — every hyperparameter as a deliberate choice) lives in the `training/`
+folder: [training/NOTES_TRAINING.md](training/NOTES_TRAINING.md), with per-policy
+deep-dives in [training/DIFFUSION_POLICY.md](training/DIFFUSION_POLICY.md) and
+[training/ACT_POLICY.md](training/ACT_POLICY.md).
 
 ---
 

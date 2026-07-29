@@ -1,7 +1,7 @@
 # Training Notes — End-to-End Training Decisions
 
 A decision log for the training stage (Stage 2 of the pipeline in
-[NOTES_PIPELINE.md](NOTES_PIPELINE.md)). `lerobot-train` assembles four things — a
+[NOTES_PIPELINE.md](../NOTES_PIPELINE.md)). `lerobot-train` assembles four things — a
 **dataloader**, **per-feature normalization**, the **policy module**, and the **training
 loop** — and each is a decision, not a given. This document goes component by component:
 what it is, the options, LeRobot 0.6.0's default, and *our decision + why*.
@@ -13,6 +13,16 @@ against the official `lerobot/diffusion_pusht` model card and the ACT/Diffusion 
 Principle we follow throughout: **start from the paper-matched LeRobot defaults** (they
 are validated to reproduce published success rates), change something only when our
 setup or goal demands it, and record every deviation.
+
+**Per-policy deep-dives (sub-documents of this training doc):**
+
+- [DIFFUSION_POLICY.md](DIFFUSION_POLICY.md) — the finished Diffusion Policy on PushT:
+  architecture, exact config, training curve, best checkpoint, and evaluation results.
+- [ACT_POLICY.md](ACT_POLICY.md) — the finished ACT policy on ALOHA sim insertion:
+  architecture, exact config, training curve, best checkpoint, and evaluation results.
+
+This document (`NOTES_TRAINING.md`) covers the *shared* machinery and cross-policy
+decisions; each sub-document is the standalone record for one trained policy.
 
 ```mermaid
 flowchart LR
@@ -216,7 +226,7 @@ each policy's optimizer/scheduler preset), `save_checkpoint=True`.
 | optimizer | Adam 1e-4, cosine + 500 warmup, wd 1e-6 | AdamW 1e-5, no scheduler, wd 1e-4 |
 | expected result | ~65% success @ ~175k (published) | high success on sim insertion |
 
-These values should be mirrored in [scripts/02_train.sh](scripts/02_train.sh).
+These values should be mirrored in [scripts/02_train.sh](../scripts/02_train.sh).
 
 ---
 

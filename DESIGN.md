@@ -101,7 +101,10 @@ lerobot-train --policy.type=act --dataset.repo_id=lerobot/aloha_sim_insertion_hu
 
 Track loss curves (WandB via `--wandb.enable=true`, or the local logs). The full
 component-by-component rationale for every training hyperparameter is in
-[NOTES_TRAINING.md](NOTES_TRAINING.md) (batch/steps/normalization/optimizer decisions).
+[training/NOTES_TRAINING.md](training/NOTES_TRAINING.md) (batch/steps/normalization/optimizer
+decisions), with per-policy deep-dives in
+[training/DIFFUSION_POLICY.md](training/DIFFUSION_POLICY.md) and
+[training/ACT_POLICY.md](training/ACT_POLICY.md).
 
 ### Stage 3 — Mock deployment (the core deliverable)
 Two complementary evaluations. They answer **different questions**, and the literature is

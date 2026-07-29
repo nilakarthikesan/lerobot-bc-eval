@@ -16,7 +16,7 @@ case "$MODE" in
     ;;
   diffusion)
     # Full run (GPU). Episodes 185-205 held out for mock deployment (DESIGN.md §2).
-    # Config decisions: NOTES_TRAINING.md (batch 64, 200k steps, seed 100000 match the
+    # Config decisions: training/NOTES_TRAINING.md (batch 64, 200k steps, seed 100000 match the
     # official lerobot/diffusion_pusht card which reaches ~65% success).
     lerobot-train \
       --policy.type=diffusion \
@@ -29,7 +29,7 @@ case "$MODE" in
     ;;
   act)
     # Episodes 45-49 held out for mock deployment (DESIGN.md §2).
-    # Config decisions: NOTES_TRAINING.md (batch 8, 100k steps; ACT converges faster).
+    # Config decisions: training/NOTES_TRAINING.md (batch 8, 100k steps; ACT converges faster).
     lerobot-train \
       --policy.type=act \
       --dataset.repo_id=lerobot/aloha_sim_insertion_human \
@@ -51,7 +51,7 @@ case "$MODE" in
       --job.target=a10g-small --job.timeout=1h
     ;;
   hfjobs-diffusion)
-    # Full diffusion run on HF Jobs (see NOTES_TRAINING.md for config rationale).
+    # Full diffusion run on HF Jobs (see training/NOTES_TRAINING.md for config rationale).
     lerobot-train \
       --policy.type=diffusion \
       --dataset.repo_id=lerobot/pusht \
@@ -63,7 +63,7 @@ case "$MODE" in
       --job.target=a100-large --job.timeout=12h
     ;;
   hfjobs-act)
-    # Full ACT run on HF Jobs (see NOTES_TRAINING.md for config rationale).
+    # Full ACT run on HF Jobs (see training/NOTES_TRAINING.md for config rationale).
     lerobot-train \
       --policy.type=act \
       --dataset.repo_id=lerobot/aloha_sim_insertion_human \

@@ -6,8 +6,10 @@ and visualize the policies' end-effector predictions against ground truth.
 
 See [DESIGN.md](DESIGN.md) for the full system design, [NOTES.md](NOTES.md) for
 per-stage learning notes, [NOTES_PIPELINE.md](NOTES_PIPELINE.md) for the pipeline
-implementation deep-dive, and [NOTES_TRAINING.md](NOTES_TRAINING.md) for the training
-hyperparameter decision log.
+implementation deep-dive, and the [`training/`](training/) folder for the training
+hyperparameter decision log ([NOTES_TRAINING.md](training/NOTES_TRAINING.md)) plus
+per-policy deep-dives ([DIFFUSION_POLICY.md](training/DIFFUSION_POLICY.md),
+[ACT_POLICY.md](training/ACT_POLICY.md)).
 
 ## Quickstart
 
