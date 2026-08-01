@@ -86,7 +86,7 @@ Stage 4 draw the "fans" of predicted futures.
 | Decision | Choice | Why |
 |---|---|---|
 | Which checkpoint to replay | the **final** model of each policy (best-by-rollout comes from part (b)) | open-loop replay is diagnostic; keep one consistent reference |
-| Timestep stride | every step for metrics; every ~10 steps for the K-sample probe | full-resolution error curve, affordable multimodality probe |
+| Timestep stride | ACT every step; **diffusion every 2nd step** (updated after measuring) | DDPM-100 on the 262M UNet costs seconds/state on MPS — stride 1 would take hours. `MSE(d)` is an average, so halving the sample count doesn't bias it |
 | Diffusion sampler | DDPM-100 for metrics (training-matched), DDIM-10 allowed for the K-sample probe | fidelity where numbers matter, speed where volume matters |
 | Batch/inference | batch states through the model where the API allows | v0.6.0 added batch inference for both policies |
 | Device | local MPS, CPU fallback env var ready (`PYTORCH_ENABLE_MPS_FALLBACK=1`) | inference is cheap relative to training |
@@ -99,7 +99,46 @@ and returns **one action per call**, only re-querying the network when the queue
 For replay we need the full chunk from a *specific* state, so we must call the underlying
 chunk-prediction path (e.g. `predict_action_chunk()` / the policy's generate method) and
 reset any queue state between queried timesteps — otherwise predictions leak across
-states and the metrics silently measure the wrong thing. Verified behavior goes in §7.
+states and the metrics silently measure the wrong thing. **Verified:**
+`predict_action_chunk()` has an explicit offline mode (empty queues → uses the batch
+directly), so batched replay is safe as long as we never call `select_action()`.
+
+### Implementation design (verified against the trained checkpoints)
+
+**Per-policy I/O contract** (read from the checkpoint configs, not assumed):
+
+| | Diffusion / PushT | ACT / ALOHA |
+|---|---|---|
+| obs keys | `observation.image` (3,96,96), `observation.state` (2) | `observation.images.top` (3,480,640), `observation.state` (14) |
+| obs window (`observation_delta_indices`) | `[-1, 0]` → shape `(B, 2, ...)` | `None` → single frame `(B, ...)` |
+| chunk returned | 32 steps | 100 steps |
+| **GT alignment** | horizon is generated for deltas −1..62 but the code returns slice `[n_obs_steps-1 : n_obs_steps-1+32]` → **chunk step d = GT action at t+d** | deltas 0..99 → **chunk step d = GT action at t+d** |
+
+So the replay builds its GT window with `action` deltas `[0 .. n_action_steps-1]`
+(independent of the policy's internal training horizon) and compares 1:1 with the chunk.
+
+**Data flow** (`scripts/03_mock_deploy.py`):
+
+1. Load policy (`from_pretrained`) + saved pre/post-processors
+   (`make_pre_post_processors` with the `device_processor` override, issue D5).
+2. Build ONE `LeRobotDataset` over all held-out episodes with `delta_timestamps` derived
+   from the policy config: obs keys at `observation_delta_indices` (or `[0]` if `None`),
+   `action` at `[0 .. n_action_steps-1] / fps`.
+3. Segment episodes via `meta.episodes` `dataset_from_index / dataset_to_index`
+   (the 0.6.0 API; `episode_data_index` is gone — same migration as the EDA script).
+4. Stack items into batches of query states → preprocess → `predict_action_chunk` →
+   postprocess → compare to the GT window.
+5. **Padding mask:** items near episode ends have copy-padded GT (`action_is_pad`);
+   masked steps are excluded from metrics — otherwise `MSE(d)` at high d is biased by
+   frozen GT.
+6. Diffusion multimodality probe: at every `--multi-stride`-th state, run the chunk
+   prediction K times (fresh noise each call → different samples).
+7. Write per-episode `.npz` (`ts`, `pred`, `gt`, `pad_mask`, `multi_pred`) +
+   per-policy `metrics.json` (`mse_by_depth`, per-episode summaries, config echo).
+
+**CLI:** `--policy {diffusion_pusht|act_aloha}` (maps to repo + dataset + episodes),
+`--episodes` override, `--batch-size`, `--k-samples`, `--multi-stride`, `--device`,
+`--output-dir`. Defaults reproduce the report numbers.
 
 ---
 
@@ -132,6 +171,19 @@ lerobot-eval --policy.path=nilakarthikesan/act_aloha_insertion \
 ```
 
 (Exact flags to be verified against the installed CLI — logged in §7.)
+
+### Screening runner (`scripts/03b_screen_checkpoints.sh`)
+
+`lerobot-eval --policy.path` accepts a Hub repo id, but that only loads the **root**
+(final) model. The banked checkpoints live in `checkpoints/<step>/pretrained_model/`
+subdirectories, so the screen must `hf download` each checkpoint's subtree and point
+`--policy.path` at the *local* directory. The runner loops
+`checkpoint × lerobot-eval(10 episodes, seed=42)` and drops each result in
+`outputs/eval/screen_<policy>/<step>/eval_info.json`; a one-liner aggregates the
+success-rate-vs-step curve afterwards. ACT screen ≈ 5 ckpts × 10 eps × ~17 s ≈ 20 min
+locally — cheap enough to run in the background while the replay engine is built.
+Diffusion screen uses `--policy.num_inference_steps=10` (DDIM would need a scheduler
+swap; fewer DDPM steps is the supported knob) only if the DDPM-100 cost proves painful.
 
 - **Metrics:** success rate (primary), avg/max episode reward, episode length.
 - **Artifacts:** rollout videos (a success and a failure per policy, for the report).
@@ -186,6 +238,38 @@ vs the demonstrator over 32 steps — meaningless alone (multimodality means a *
 can differ from the human's), which is exactly why the full replay reports `MSE(d)`
 averaged over all states/episodes plus multi-sample spread.
 
+### Build-phase tests (03_mock_deploy.py + 03b_screen_checkpoints.sh)
+
+- [x] **T7 PASS (after two fixes)** — quick diffusion replay (2 episodes, stride 10):
+  first run over-ran the dataset (D9), fixed; then RMSE **23 px at depth 1 → 70 px at
+  depth 32** — error grows with prediction depth exactly as designed.
+- [x] **T8 PASS (after one fix)** — quick ACT replay (1 episode): first run crashed in
+  ACT's forward (D10), fixed; then 20 states in 4 s. ACT inference is ~1000× cheaper
+  than diffusion's (one transformer pass vs 100 UNet denoising passes) — an asymmetry
+  worth a sentence in the report.
+- [x] **T9 PASS — full ACT replay:** all 2,500 held-out states (5 eps × 500, stride 1)
+  in 150 s. Overall joint-space RMSE **0.097 rad**; depth curve **0.056 → 0.111 rad**
+  (d=1 → d=100); per-episode MSE tight (0.0055–0.0113) → no outlier episode.
+- [x] **T10 PASS — ACT checkpoint screen (D8 fixed on the way): resolves D7.**
+  10 episodes/checkpoint, seed 42:
+
+  | checkpoint | success | avg max reward |
+  |---|---|---|
+  | 20K | **20%** | 2.3 |
+  | 40K | 10% | 1.3 |
+  | 60K | 10% | 2.1 |
+  | 80K | 10% | 2.0 |
+  | 100K (final) | **0%** | 1.4 |
+
+  The final checkpoint is the *worst* closed-loop while being the best open-loop — the
+  robomimic result reproduced on our own run (overfitting to demonstrator idiosyncrasies
+  hurts rollout before it hurts prediction MSE). 20% at 20K is in the ballpark of the
+  original ACT paper's ~20% on human-demo insertion. **Decision: ACT's deployed
+  checkpoint = 20K**, pending the 50-episode confirm run.
+- [ ] **T11 — full diffusion replay** (21 eps, stride 2, K=8 probe) — running.
+- [ ] **T12 — ACT 20K confirm** (50 episodes, seed 42) — running.
+- [ ] **T13 — diffusion checkpoint screen** (8 ckpts × 10 eps) — queued after T11.
+
 ## 5. Issues log (live — feeds M6 writeup)
 
 - **D1 (from M3, context):** `huggingface/lerobot-gpu` image lacks `gym_pusht`/`gym_aloha`
@@ -220,15 +304,29 @@ averaged over all states/episodes plus multi-sample spread.
   policy module — feeding **raw** observations to `predict_action_chunk()` would produce
   garbage *silently*. The sanity script round-trips through the saved pipelines and
   checks output ranges precisely to catch this class of bug.
-- **D7 (T6, open question for the screening):** ACT scored **0.0 reward in both** ALOHA
-  smoke episodes despite purposeful, coordinated arm motion (video evidence in
-  `reports/m4_smoke/`) — it approaches the peg/socket but appears to miss the grasp.
-  Candidate explanations, to be resolved by part (b): (a) plain closed-loop compounding
-  error — approach is in-distribution, contact is not; (b) the final 100K checkpoint
-  overfits — robomimic predicts an earlier checkpoint (20K–60K) may roll out better;
-  (c) something env-side (verify `AlohaInsertion-v0`'s staged reward definition and the
-  camera/obs mapping). Action: screen all 5 checkpoints × 10 episodes, watch videos of
-  the best; only then debug deeper.
+- **D7 (T6 → RESOLVED by T10):** ACT scored **0.0 reward in both** ALOHA smoke episodes
+  despite purposeful, coordinated arm motion (video evidence in `reports/m4_smoke/`).
+  Candidate explanations were (a) closed-loop compounding error, (b) final-checkpoint
+  overfitting per robomimic, (c) env-side mismatch. **The screen confirmed (b):** the
+  20K checkpoint succeeds 20% of the time while the final 100K checkpoint succeeds 0%
+  — the smoke test just happened to use the worst checkpoint. Success decays
+  monotonically-ish with training steps while open-loop RMSE improves: our own
+  open-loop/closed-loop divergence, on our own data (§4 T10).
+- **D8 (03b, tooling):** the current `hf download` CLI prints `path=<dir>` — with a
+  literal `path=` prefix — instead of the bare directory. Captured verbatim into
+  `--policy.path`, it produced an `HFValidationError` two layers deep in draccus.
+  Fix: `${SNAP#path=}` strip in the runner.
+- **D9 (T7, dataset API gotcha):** `LeRobotDataset(episodes=[190, 191])` filters the
+  *frames*, but `meta.episodes` still returns the **full** episode table with **global**
+  `dataset_from_index/to_index` — naively iterating it walks episodes 0, 1, 2… and runs
+  off the end of the subset (`IndexError: 369 out of bounds for size 363`). Fix:
+  filter the table to the selected episodes and rebuild subset-local offsets from
+  episode lengths (asserting they sum to `len(ds)`).
+- **D10 (T8, policy I/O asymmetry):** requesting a delta-timestamps window for obs keys
+  when the policy defines none (ACT: `observation_delta_indices=None`) adds a time dim —
+  `observation.state` becomes `(B, 1, 14)` — and ACT's forward crashes with a token
+  stack-size mismatch. Diffusion *requires* the window; ACT *rejects* it. Fix: only
+  window obs keys when `observation_delta_indices is not None`.
 
 ## 6. Interfaces to Stage 4 (visualization)
 
@@ -236,9 +334,11 @@ Stage 4 consumes only files produced here — it never re-runs inference:
 
 ```
 outputs/mock_deploy/<policy>/
-├── ep<id>.npz         # ts, pred [T,K,H,A], gt [T,H,A]
-└── metrics.json       # MSE(d) curve, EE-error summary, per-episode stats
-outputs/eval/<policy>/ # lerobot-eval outputs: success rates, videos
+├── ep<id>.npz            # ts, pred [T,H,A], gt [T,H,A], pad [T,H],
+│                         # multi_ts [Tm], multi_pred [Tm,K,H,A]
+└── metrics.json          # mse_by_depth, overall RMSE, per-episode stats, config echo
+outputs/eval/screen_<policy>/<step>/   # checkpoint screen: eval_info.json + videos
+outputs/eval/confirm_<policy>/<step>/  # 50-episode confirm on the winning checkpoint
 ```
 
 ## 7. Papers
