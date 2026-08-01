@@ -135,9 +135,22 @@ the last step). Because in-training env eval is disabled on HF Jobs (see the run
 we **evaluate the banked checkpoints in M4** (locally, with `gym_pusht`) and pick the best
 there — there is no in-training success curve for this run.
 
-| Checkpoint | In-training eval success | Selected? |
-|-----------|--------------------------|-----------|
-| _25K … 200K_ | _fill from logs_ | _fill_ |
+**M4 screen results** (10 episodes/checkpoint, 10 denoising steps, seed 42 —
+full detail in [NOTES_DEPLOYMENT.md](../NOTES_DEPLOYMENT.md) §4):
+
+| Checkpoint | Screen success | Selected? |
+|-----------|----------------|-----------|
+| 25K | 20% | |
+| 50K | 0% | |
+| 75K | 30% | |
+| 100K | 20% | |
+| 125K | 40% | |
+| 150K | 20% | |
+| 175K | 30% | |
+| **200K (final)** | **50%** | ✓ — confirmed **48% over 50 episodes** (DDPM-100) |
+
+Unlike ACT (whose best checkpoint was the *earliest*), diffusion's rollout success keeps
+improving with training — the final model wins.
 
 ---
 
@@ -153,9 +166,12 @@ there — there is no in-training success curve for this run.
 
 | Metric | Value |
 |--------|-------|
-| Closed-loop success (DDPM-100) | _TBD_ |
-| Closed-loop success (DDIM-10) | _TBD_ |
-| Open-loop action MSE (held-out) | _TBD_ |
+| Closed-loop success, 200K, DDPM-100, 50 eps | **48%** (avg max reward 0.84) |
+| Closed-loop success, 200K, 10-step screen, 10 eps | 50% |
+| Open-loop replay RMSE (held-out 185–205, 694 states) | **51.9 px** overall; 18.5 px (d=1) → 65.2 px (d=32) |
+
+48% vs the card's ~65%: we trained on 185 episodes (21 held out for replay), different
+seed, and n=50 carries ±~14% binomial noise — within an honest gap, not a red flag.
 
 ---
 

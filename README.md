@@ -39,6 +39,7 @@ Full training runs ran on Hugging Face Jobs (`a100-large`) — see `scripts/02_t
 - [x] M1 dataset EDA in `reports/eda/` (split fixed: pusht 0-184 train / 185-205 test; aloha 0-44 / 45-49)
 - [x] M2 smoke training runs (local MPS + HF Jobs cloud validation)
 - [x] M3 full ACT + diffusion training runs (both complete, checkpoints on the Hub)
-- [ ] M4 mock deployment: held-out replay + closed-loop `lerobot-eval` ← **current stage** ([NOTES_DEPLOYMENT.md](NOTES_DEPLOYMENT.md))
-- [ ] M5 EE prediction visualizations
+- [x] M4 mock deployment ([NOTES_DEPLOYMENT.md](NOTES_DEPLOYMENT.md)): open-loop replay + checkpoint screens + 50-ep confirms.
+      Diffusion **48%** success (200K ckpt, final); ACT **20%** (20K ckpt — the *earliest*, final scored 0%)
+- [ ] M5 EE prediction visualizations ← **current stage**
 - [ ] M6 writeup for Irmak (incl. LeRobot issues encountered)

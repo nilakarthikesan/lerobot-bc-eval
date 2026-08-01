@@ -137,9 +137,21 @@ diffusion doc; robomimic [arXiv:2108.03298](https://arxiv.org/abs/2108.03298)). 
 env eval is disabled on HF Jobs, so we **evaluate the banked checkpoints in M4** (locally,
 with `gym_aloha`) and pick the best there.
 
-| Checkpoint | In-training eval success | Selected? |
-|-----------|--------------------------|-----------|
-| _20K … 100K_ | _fill from logs_ | _fill_ |
+**M4 screen results** (10 episodes/checkpoint, seed 42 — full detail in
+[NOTES_DEPLOYMENT.md](../NOTES_DEPLOYMENT.md) §4):
+
+| Checkpoint | Screen success | Selected? |
+|-----------|----------------|-----------|
+| **20K (earliest)** | **20%** | ✓ — confirmed **20% over 50 episodes** |
+| 40K | 10% | |
+| 60K | 10% | |
+| 80K | 10% | |
+| 100K (final) | 0% | |
+
+The robomimic prediction, reproduced: closed-loop success **decays** with further
+training while open-loop imitation keeps improving — the final checkpoint is unusable
+(0%) and the earliest banked one wins. The training smoke test's 0.0-reward mystery
+(issue D7) was just this: it happened to use the worst checkpoint.
 
 ---
 
@@ -151,8 +163,12 @@ with `gym_aloha`) and pick the best there.
 
 | Metric | Value |
 |--------|-------|
-| Closed-loop success | _TBD_ |
-| Open-loop action error (held-out) | _TBD_ |
+| Closed-loop success, 20K ckpt, 50 eps | **20%** (avg max reward 2.26) |
+| Closed-loop success, 100K ckpt (final) | 0% (10 eps) |
+| Open-loop replay RMSE (held-out 45–49, joint space, 2,500 states) | **0.097 rad** overall; 0.056 (d=1) → 0.111 rad (d=100) |
+
+20% is in the ballpark of the original ACT paper's human-demo insertion results; the
+open-loop/closed-loop divergence across checkpoints is the report's lead finding.
 
 ---
 

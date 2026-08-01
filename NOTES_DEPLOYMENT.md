@@ -295,8 +295,21 @@ averaged over all states/episodes plus multi-sample spread.
   selection (robomimic) that this project produces. Note the screen's 10-step
   sampler likely under-reports success (avg max reward 0.99 at 125K = the T sits at
   99% coverage against a 95% success threshold); the confirm run restores DDPM-100.
-- [ ] **T14 — diffusion 200K confirm** (50 episodes, DDPM-100, seed 42) — running.
-  Reference: the official `lerobot/diffusion_pusht` card reports ~65% at this config.
+- [x] **T14 PASS — diffusion 200K confirm:** **48% success over 50 episodes**
+  (DDPM-100, seed 42, avg max reward 0.84) — the 10-episode screen's 50% held up.
+  Below the official card's ~65%, honestly attributable: we train on **185 episodes,
+  not all ~206** (21 held out for the replay study), different seed, and n=50 has
+  ±~14% binomial noise. Deployed checkpoint = **200K (the final model)**.
+
+### M4 verdict — the two numbers that go in the report
+
+| | open-loop (replay, held-out) | closed-loop (50-ep confirm) | deployed ckpt |
+|---|---|---|---|
+| Diffusion / PushT | RMSE 51.9 px, depth 18.5→65.2 px | **48% success** | **200K (final)** |
+| ACT / ALOHA insertion | RMSE 0.097 rad, depth 0.056→0.111 rad | **20% success** | **20K (earliest!)** |
+
+The checkpoint-selection asymmetry (final-best vs earliest-best) plus ACT's
+open-loop-good/closed-loop-bad divergence are the two findings the writeup leads with.
 
 ## 5. Issues log (live — feeds M6 writeup)
 
