@@ -266,12 +266,18 @@ averaged over all states/episodes plus multi-sample spread.
   hurts rollout before it hurts prediction MSE). 20% at 20K is in the ballpark of the
   original ACT paper's ~20% on human-demo insertion. **Decision: ACT's deployed
   checkpoint = 20K**, pending the 50-episode confirm run.
-- [ ] **T11 — full diffusion replay** (21 eps, stride 4, K=8 probe) — running,
-  ~2 min/episode after two false starts (D11, D12).
+- [x] **T11 PASS — full diffusion replay:** all 21 held-out episodes, 694 query states,
+  63 min on MPS (after two false starts — D11, D12). Overall RMSE **51.9 px**
+  (~10% of the 512-px workspace); depth curve **18.5 → 65.2 px** (d=1 → d=32).
+  Per-episode MSE spans 570–4900 — wide, as expected for a multimodal task where a
+  valid plan can legitimately diverge from the demonstrator's. The K=8 multimodality
+  probe (69 states × 8 samples) is banked in the npz files for Stage 4's fan plots.
 - [x] **T12 PASS — ACT 20K confirm run:** **20% success over 50 episodes**
   (avg max reward 2.26, seed 42) — the 10-episode screen estimate held exactly.
   This is ACT's headline closed-loop number; deployed checkpoint = **20K**.
-- [ ] **T13 — diffusion checkpoint screen** (8 ckpts × 10 eps) — queued after T11.
+- [ ] **T13 — diffusion checkpoint screen** (8 ckpts × 10 eps,
+  `--policy.num_inference_steps=10` override verified in the logs) — running,
+  ~2 min/episode worst case (env stepping dominates, not denoising).
 
 ## 5. Issues log (live — feeds M6 writeup)
 
