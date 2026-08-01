@@ -275,9 +275,28 @@ averaged over all states/episodes plus multi-sample spread.
 - [x] **T12 PASS — ACT 20K confirm run:** **20% success over 50 episodes**
   (avg max reward 2.26, seed 42) — the 10-episode screen estimate held exactly.
   This is ACT's headline closed-loop number; deployed checkpoint = **20K**.
-- [ ] **T13 — diffusion checkpoint screen** (8 ckpts × 10 eps,
-  `--policy.num_inference_steps=10` override verified in the logs) — running,
-  ~2 min/episode worst case (env stepping dominates, not denoising).
+- [x] **T13 PASS — diffusion checkpoint screen** (8 ckpts × 10 eps, 10 denoising steps,
+  seed 42; override verified in the logs):
+
+  | checkpoint | success | avg max reward |
+  |---|---|---|
+  | 25K | 20% | 0.75 |
+  | 50K | 0% | 0.79 |
+  | 75K | 30% | 0.93 |
+  | 100K | 20% | 0.70 |
+  | 125K | 40% | 0.99 |
+  | 150K | 20% | 0.82 |
+  | 175K | 30% | 0.90 |
+  | **200K (final)** | **50%** | 0.88 |
+
+  **Diffusion is the mirror image of ACT:** its best closed-loop checkpoint is the
+  *final* one (ACT's was the earliest). Two policies, two opposite
+  checkpoint-selection outcomes — the strongest single argument for rollout-based
+  selection (robomimic) that this project produces. Note the screen's 10-step
+  sampler likely under-reports success (avg max reward 0.99 at 125K = the T sits at
+  99% coverage against a 95% success threshold); the confirm run restores DDPM-100.
+- [ ] **T14 — diffusion 200K confirm** (50 episodes, DDPM-100, seed 42) — running.
+  Reference: the official `lerobot/diffusion_pusht` card reports ~65% at this config.
 
 ## 5. Issues log (live — feeds M6 writeup)
 
