@@ -171,6 +171,14 @@ The DESIGN.md §8 Viser scene, built on MuJoCo FK:
   states across all 21 episodes by spread and shows the top 4, with the spread
   quantified in each panel title (`pusht_fans_top_spread.png`). The largest spreads
   are at episode-start/approach states, consistent with the theory.
+  **Independent corroboration (found post-hoc):** Alexander Soare's PushT
+  [multimodality experiments](https://github.com/alexander-soare/little_experiments/blob/main/action_multimodality.md)
+  reach the same conclusion with ~100 Monte-Carlo samples per state — "these models
+  do not produce multi-modal action trajectory distributions; the distributions are
+  much sharper than one might expect" — and show that (a) conditioning on the
+  2-observation history (velocity) sharpens the distribution further, and (b)
+  multimodality re-emerges if small Gaussian noise is added to the *observations*.
+  Our K=8 result is the same phenomenon at smaller K.
 - **V-B (F2, perception nuance):** GT trace leads the pusher at episode start
   (actions are cursor targets) — documented in V2 so nobody "fixes" it later.
 - **V-C (05, API rot):** `matplotlib.cm.get_cmap` is gone in matplotlib ≥3.9 —
@@ -183,7 +191,31 @@ The DESIGN.md §8 Viser scene, built on MuJoCo FK:
   the ~30 cm EE traces nearly invisible (caught by the V7 screenshot). Fix: set the
   camera on `on_client_connect` to frame the traces' centroid.
 
-## 7. References
+## 7. Improvement backlog (researched, not yet built)
+
+Ranked by payoff-per-effort; none block M6:
+
+1. **Monte-Carlo fans at K≈100** (Soare's protocol) at the top-spread states only —
+   with 10 denoising steps this is ~10 min of compute and makes the "sharp
+   distribution" claim quantitative (histogram of sample spread), not anecdotal.
+2. **Observation-noise probe:** re-run the K-sample probe with small Gaussian noise on
+   `observation.state` to *elicit* the latent multimodality (Soare shows it
+   reappears). One extra CLI flag on `03_mock_deploy.py`.
+3. **Temporal color gradient** on predicted trajectories (red→blue along the chunk,
+   as in Soare's GIFs) instead of alpha fade — encodes flow direction legibly in
+   stills.
+4. **Viser playback button** (auto-advance the timestep slider) + per-anchor
+   visibility toggles; optionally draw the predicted chunk *nearest* the current
+   timestep only.
+5. **Rerun-based episode inspector:** LeRobot ships `lerobot-dataset-viz` built on
+   [Rerun](https://github.com/rerun-io/rerun), the community standard for exactly
+   this (camera + joints + action chunks on one synced timeline). Our npz arrays
+   could be logged as `LineStrips3D` alongside camera frames — strongest candidate
+   if the writeup demo needs to scrub video and predictions together.
+6. **PushT in the 3D scene:** the 2D workspace as a plane with the mp4 texture and
+   prediction fans as flat splines — unifies both policies in one demo artifact.
+
+## 8. References
 
 - Diffusion Policy — Chi et al., RSS 2023, arXiv:2303.04137 (fan/multimodality framing).
 - Implicit BC — Florence et al., 2021, arXiv:2109.00137 (PushT multimodality origin).
