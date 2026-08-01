@@ -266,8 +266,11 @@ averaged over all states/episodes plus multi-sample spread.
   hurts rollout before it hurts prediction MSE). 20% at 20K is in the ballpark of the
   original ACT paper's ~20% on human-demo insertion. **Decision: ACT's deployed
   checkpoint = 20K**, pending the 50-episode confirm run.
-- [ ] **T11 — full diffusion replay** (21 eps, stride 2, K=8 probe) — running.
-- [ ] **T12 — ACT 20K confirm** (50 episodes, seed 42) — running.
+- [ ] **T11 — full diffusion replay** (21 eps, stride 4, K=8 probe) — running,
+  ~2 min/episode after two false starts (D11, D12).
+- [x] **T12 PASS — ACT 20K confirm run:** **20% success over 50 episodes**
+  (avg max reward 2.26, seed 42) — the 10-episode screen estimate held exactly.
+  This is ACT's headline closed-loop number; deployed checkpoint = **20K**.
 - [ ] **T13 — diffusion checkpoint screen** (8 ckpts × 10 eps) — queued after T11.
 
 ## 5. Issues log (live — feeds M6 writeup)
@@ -327,6 +330,18 @@ averaged over all states/episodes plus multi-sample spread.
   `observation.state` becomes `(B, 1, 14)` — and ACT's forward crashes with a token
   stack-size mismatch. Diffusion *requires* the window; ACT *rejects* it. Fix: only
   window obs keys when `observation_delta_indices is not None`.
+- **D11 (T11, MPS memory ceiling):** batch 64 × DDPM-100 on the 262M UNet blew past
+  unified memory — the process sat in uninterruptible waits with a ~417 GB virtual
+  mapping and ~5 min of CPU per 24 min of wall time, thrashing instead of computing
+  (system swap hit 5.9/7 GB). Batch 16 is the validated ceiling for this model on this
+  machine. Batch size is not just a throughput knob at inference time either.
+- **D12 (T11, observability — killed a healthy run):** Python **block-buffers stdout
+  when redirected to a file**, so a long background run can compute for 40 minutes while
+  its log shows nothing — indistinguishable from a hang. Diagnosed by re-running the
+  known-good quick config (full speed) → the "stuck" full run had almost certainly been
+  fine; its progress lines were sitting in the buffer when it was killed. Rule adopted:
+  **always `python -u` for long redirected jobs**, and treat "no log lines" as
+  unproven-hang until CPU-time accounting says otherwise.
 
 ## 6. Interfaces to Stage 4 (visualization)
 
