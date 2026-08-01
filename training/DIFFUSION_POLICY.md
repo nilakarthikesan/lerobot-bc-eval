@@ -15,8 +15,9 @@ behaved, which checkpoint we selected, and how it evaluates.
 | HF Jobs job | `6a69a86fa9f4e0ab00b2c8ba` ([job page](https://huggingface.co/jobs/nilakarthikesan/6a69a86fa9f4e0ab00b2c8ba)) — 2nd launch, eval disabled |
 | Model repo | [nilakarthikesan/diffusion_pusht](https://huggingface.co/nilakarthikesan/diffusion_pusht) |
 | Hardware | `a100-large` (HF Jobs) |
-| State | **Training in progress** — final results tables below are filled on completion |
-| Measured throughput | ~9.3 step/s (~585 samples/s) at batch 64 → ~6 h for 200K steps |
+| State | **Training COMPLETE** — 200K steps in 6h 35m; final model + 8 checkpoints on the Hub |
+| Measured throughput | ~9.3 step/s (~585 samples/s) at batch 64 |
+| Checkpoints on Hub | `checkpoints/{025000..200000}` (every 25K) + final model at repo root |
 
 > **Run note.** The first launch (`6a699a7f...`) trained cleanly to 25K (loss 0.011) and
 > pushed a `checkpoints/025000/` checkpoint, then **crashed at the in-sim eval** because the
@@ -105,16 +106,22 @@ lerobot-train \
 Loss is the denoising MSE (predicted vs actual noise), so absolute values are small; the
 *trend* is what matters.
 
-| Step | Loss (observed) |
-|------|-----------------|
-| 2K | ~0.032 |
-| 5K | ~0.023 |
-| _… fill from final log …_ | |
+Observed denoising loss over the full run (sampled from the job log):
 
+| Step | Loss | Grad norm | LR |
+|------|------|-----------|-----|
+| 200 | 0.303 | 4.72 | 2.0e-05 (warmup) |
+| 20K | 0.012 | 0.21 | 9.8e-05 |
+| 60K | 0.007 | 0.15 | 8.0e-05 |
+| 100K | 0.005 | 0.14 | 5.0e-05 |
+| 140K | 0.002 | 0.10 | 2.1e-05 |
+| 200K (final) | **0.001** | 0.09 | ~0 (cosine fully decayed) |
+
+- Monotone, clean descent; gradient norms stable throughout; no spikes or divergence.
 - **Throughput:** ~0.067 s compute + ~0.043 s data per step on the A100 (dataloader is not
-  the bottleneck).
-- Full loss curve + the periodic success metric: _attach on completion (from job logs / the
-  loss plot for the report)._
+  the bottleneck). 200K steps ≈ 6h 35m wall.
+- Reminder: low denoising loss ≠ good policy — closed-loop success in M4 decides which
+  checkpoint we ship (see §6).
 
 ---
 

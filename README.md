@@ -25,14 +25,20 @@ lerobot-train --policy.type=diffusion --dataset.repo_id=lerobot/pusht \
   --steps=2000 --batch_size=32 --policy.device=mps --output_dir=outputs/smoke_diffusion
 ```
 
-Full training runs target Georgia Tech GPUs (PACE / AI Makerspace) — see DESIGN.md §6.
+Full training runs ran on Hugging Face Jobs (`a100-large`) — see `scripts/02_train.sh`
+(`hfjobs-*` modes) and [training/NOTES_TRAINING.md](training/NOTES_TRAINING.md).
+
+## Trained models
+
+- Diffusion / PushT: [nilakarthikesan/diffusion_pusht](https://huggingface.co/nilakarthikesan/diffusion_pusht) — 200K steps, 8 checkpoints
+- ACT / ALOHA insertion: [nilakarthikesan/act_aloha_insertion](https://huggingface.co/nilakarthikesan/act_aloha_insertion) — 100K steps, 5 checkpoints
 
 ## Status
 
 - [x] M0 environment; pusht dataset loads + video decodes (lerobot 0.6.0, torch 2.11, Python 3.12)
 - [x] M1 dataset EDA in `reports/eda/` (split fixed: pusht 0-184 train / 185-205 test; aloha 0-44 / 45-49)
-- [ ] M2 local smoke training run (MPS)
-- [ ] M3 full ACT + diffusion training runs
-- [ ] M4 mock deployment: held-out replay + closed-loop `lerobot-eval`
+- [x] M2 smoke training runs (local MPS + HF Jobs cloud validation)
+- [x] M3 full ACT + diffusion training runs (both complete, checkpoints on the Hub)
+- [ ] M4 mock deployment: held-out replay + closed-loop `lerobot-eval` ← **current stage** ([NOTES_DEPLOYMENT.md](NOTES_DEPLOYMENT.md))
 - [ ] M5 EE prediction visualizations
 - [ ] M6 writeup for Irmak (incl. LeRobot issues encountered)

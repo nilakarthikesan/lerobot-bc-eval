@@ -1,4 +1,4 @@
-lerobot[training,pusht,aloha]==0.6.0   # pinned; v0.6.0 needs the training extra; includes gym-pusht/gym-aloha
+lerobot[training,diffusion,pusht,aloha]==0.6.0   # pinned; v0.6.0 needs the training extra; includes gym-pusht/gym-aloha
 torch>=2.7                    # v0.6.0 minimum
 matplotlib>=3.8
 viser>=1.0                    # 3D visualization of EE predictions (ALOHA)
