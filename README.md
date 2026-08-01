@@ -42,5 +42,6 @@ Full training runs ran on Hugging Face Jobs (`a100-large`) — see `scripts/02_t
 - [x] M4 mock deployment ([NOTES_DEPLOYMENT.md](NOTES_DEPLOYMENT.md)): open-loop replay + checkpoint screens + 50-ep confirms.
       Diffusion **48%** success (200K ckpt, final); ACT **20%** (20K ckpt — the *earliest*, final scored 0%)
 - [x] M5 prediction visualizations ([NOTES_VISUALIZATION.md](NOTES_VISUALIZATION.md)): depth curves, PushT overlays/fans/video,
-      ALOHA joint panels + error heatmap in `reports/m5/` (Viser 3D scene = remaining stretch)
+      ALOHA joint panels + error heatmap in `reports/m5/`, plus the interactive Viser 3D EE scene
+      (`python scripts/05_viser_aloha.py` → link printed)
 - [ ] M6 writeup for Irmak (incl. LeRobot issues encountered)

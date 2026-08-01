@@ -135,13 +135,28 @@ Only after V1–V5 pass: full generation for all default episodes + review + com
   phase is near-zero error. Independent open-loop confirmation of the D7 story
   ("approach is easy, contact is hard").
 
-## 5. Stretch (kept out of the critical path)
+## 5. Interactive artifact — IMPLEMENTED (`scripts/05_viser_aloha.py`)
 
-- **MuJoCo FK:** `gym-aloha`'s MuJoCo model gives EE 3D positions from the 14 joint
-  angles (set qpos, read gripper site) — turns F5 into 3D EE traces.
-- **Viser scene** (the DESIGN.md §8 interactive artifact): GT EE trace as a line,
-  predicted chunks as colored branching segments, timestep slider. Builds on FK output.
-  Reuses patterns from the Franka IK Viser project.
+The DESIGN.md §8 Viser scene, built on MuJoCo FK:
+
+- **FK:** `gym-aloha`'s `bimanual_viperx_insertion.xml`; action layout
+  `[left 6, left grip, right 6, right grip]` maps to qpos `0–5` / `8–13` (fingers
+  `6,7`/`14,15` stay 0 — gripper opening doesn't move the gripper base). Read
+  `vx300s_{left,right}/gripper_link` body positions after `mj_forward`.
+- **Scene:** GT EE traces as green (left) / blue (right) splines; ACT's predicted
+  100-step chunks as warm-colored splines branching at 5 anchor states; timestep
+  slider drives two markers along the truth; description panel in-scene.
+- **Run:** `python scripts/05_viser_aloha.py --episode 47` → link printed
+  (auto-picks a free port if 8080 is taken).
+
+### Verification (V6–V8, all passed)
+
+- **V6 (FK sanity):** EE z ∈ [0.132, 0.307] m — plausible tabletop workspace — and
+  max per-frame EE step 0.7 cm at 50 fps (smooth, no jumps/NaN).
+- **V7 (render, via browser screenshot):** both arms' GT traces render with predicted
+  chunks visibly hugging them; markers sit at t=0.
+- **V8 (interaction):** setting timestep 0 → 400 moved both markers along their
+  traces over the live websocket.
 
 ## 6. Issues log (live)
 
@@ -158,6 +173,15 @@ Only after V1–V5 pass: full generation for all default episodes + review + com
   are at episode-start/approach states, consistent with the theory.
 - **V-B (F2, perception nuance):** GT trace leads the pusher at episode start
   (actions are cursor targets) — documented in V2 so nobody "fixes" it later.
+- **V-C (05, API rot):** `matplotlib.cm.get_cmap` is gone in matplotlib ≥3.9 —
+  crashed the first Viser launch. Use `matplotlib.colormaps["name"]`.
+- **V-D (05, silent port fallback):** ports 8080/8081 were already occupied on this
+  machine, and **Viser silently binds the next free port** — the script's "ready at
+  {requested port}" message would have printed a dead link. Fix: report
+  `server.get_port()`, never the requested port.
+- **V-E (05, framing):** Viser's default camera fits the 1.2 m table grid, which makes
+  the ~30 cm EE traces nearly invisible (caught by the V7 screenshot). Fix: set the
+  camera on `on_client_connect` to frame the traces' centroid.
 
 ## 7. References
 
