@@ -12,9 +12,11 @@ folder: [training/NOTES_TRAINING.md](training/NOTES_TRAINING.md), with per-polic
 deep-dives in [training/DIFFUSION_POLICY.md](training/DIFFUSION_POLICY.md) and
 [training/ACT_POLICY.md](training/ACT_POLICY.md).
 
-The mock-deployment stage (M4 — open-loop replay + closed-loop eval, the current
-stage) is designed and tracked in [NOTES_DEPLOYMENT.md](NOTES_DEPLOYMENT.md),
-including the live issues log from implementing and testing it.
+The mock-deployment stage (M4 — open-loop replay + closed-loop eval) is designed and
+tracked in [NOTES_DEPLOYMENT.md](NOTES_DEPLOYMENT.md), including the live issues log
+from implementing and testing it. The visualization stage (M5 — the figures built from
+M4's arrays, with a frame-by-frame verification protocol) lives in
+[NOTES_VISUALIZATION.md](NOTES_VISUALIZATION.md).
 
 ---
 
