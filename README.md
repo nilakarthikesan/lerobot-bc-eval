@@ -4,6 +4,9 @@ Behavior cloning with [LeRobot](https://github.com/huggingface/lerobot): train *
 **Diffusion Policy** on LeRobot datasets, then run a mock deployment on held-out episodes
 and visualize the policies' end-effector predictions against ground truth.
 
+**→ Final report: [reports/REPORT.md](reports/REPORT.md)** (results, findings, and the
+LeRobot issues log).
+
 See [DESIGN.md](DESIGN.md) for the full system design, [NOTES.md](NOTES.md) for
 per-stage learning notes, [NOTES_PIPELINE.md](NOTES_PIPELINE.md) for the pipeline
 implementation deep-dive, and the [`training/`](training/) folder for the training
@@ -44,4 +47,4 @@ Full training runs ran on Hugging Face Jobs (`a100-large`) — see `scripts/02_t
 - [x] M5 prediction visualizations ([NOTES_VISUALIZATION.md](NOTES_VISUALIZATION.md)): depth curves, PushT overlays/fans/video,
       ALOHA joint panels + error heatmap in `reports/m5/`, plus the interactive Viser 3D EE scene
       (`python scripts/05_viser_aloha.py` → link printed)
-- [ ] M6 writeup for Irmak (incl. LeRobot issues encountered)
+- [x] M6 writeup ([reports/REPORT.md](reports/REPORT.md)) — findings, figures, and the curated LeRobot issues log; W1–W4 verification passed ([NOTES_WRITEUP.md](NOTES_WRITEUP.md))

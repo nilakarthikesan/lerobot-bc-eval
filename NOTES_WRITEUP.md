@@ -69,13 +69,16 @@ in the stage notes, linked.
 
 ## 4. Verification protocol (a document gets tested too)
 
-- [ ] **W1 — number audit:** every metric in the report grep-matches its source
-  (`metrics.json`, `eval_info.json`, screen logs). No number from memory.
-- [ ] **W2 — link audit:** every relative link and image path resolves on GitHub
-  (render check on the pushed commit).
-- [ ] **W3 — reproduce audit:** the README quickstart + script commands named in the
-  report actually exist and match current CLI flags.
-- [ ] **W4 — cold-reader pass:** no undefined jargon from our internal shorthand.
+- [x] **W1 — number audit PASS:** all headline metrics assert-checked against
+  `metrics.json` / `eval_info.json` programmatically (RMSE 51.9/18.5/65.2 px,
+  0.097/0.056/0.111 rad, 48 %, 20 %, 694/2500 states).
+- [x] **W2 — link audit PASS:** all 13 relative links/images in the report verified to
+  exist on disk before push.
+- [x] **W3 — reproduce audit PASS:** every command named in the report's Reproduce
+  section exists (`hfjobs-*` modes, `03/03b/04/05` scripts and their flags).
+- [x] **W4 — cold-reader pass:** internal shorthand (D-numbers, "anchor", screen/
+  confirm) is either introduced in place or only referenced as pointers into the
+  stage notes.
 
 ## 5. Definition of done (the finish line)
 
