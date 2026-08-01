@@ -158,6 +158,20 @@ The DESIGN.md §8 Viser scene, built on MuJoCo FK:
 - **V8 (interaction):** setting timestep 0 → 400 moved both markers along their
   traces over the live websocket.
 
+### Frame-by-frame walkthrough (screenshots in `reports/m5/viser/`)
+
+The scene retells the M4 findings spatially — each phase of the episode matches a
+region of the F6 error heatmap:
+
+| | |
+|---|---|
+| ![t=0](reports/m5/viser/viser_t000.png) | ![t=100](reports/m5/viser/viser_t100.png) |
+| **t=0 — approach.** Markers at the trace starts; the earliest-anchor (red) chunks lie almost exactly on the truth — the heatmap's easy region. | **t=100 — grasp.** Markers inside the dense mid-trace tangles (fine motion in a small volume); predicted chunks visibly separate from truth here, matching the joint-panel divergences (L.wrist_r, frames 150–250). |
+| ![t=250](reports/m5/viser/viser_t250.png) | ![t=480](reports/m5/viser/viser_t480.png) |
+| **t=250 — transfer/insertion.** Blue marker at the bottom loop of the right-arm trace (reach down to the socket) — the heatmap's brightest, hardest-to-predict contact events. | **t=480 — hold.** Markers settle at the final pose and barely move after ~frame 300 — the heatmap's near-zero-error region. |
+
+(Paths above are repo-relative; the images live next to the other M5 figures.)
+
 ## 6. Issues log (live)
 
 - **V-A (F3, finding not bug):** the 8-sample fans **collapse to a tight bundle** at
