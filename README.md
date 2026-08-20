@@ -48,3 +48,6 @@ Full training runs ran on Hugging Face Jobs (`a100-large`) — see `scripts/02_t
       ALOHA joint panels + error heatmap in `reports/m5/`, plus the interactive Viser 3D EE scene
       (`python scripts/05_viser_aloha.py` → link printed)
 - [x] M6 writeup ([reports/REPORT.md](reports/REPORT.md)) — findings, figures, and the curated LeRobot issues log; W1–W4 verification passed ([NOTES_WRITEUP.md](NOTES_WRITEUP.md))
+- [x] M7 CNN saliency trust probe ([NOTES_SALIENCY.md](NOTES_SALIENCY.md)): occlusion-sensitivity maps on 5 ACT + 3 Diffusion checkpoints
+      (`scripts/08_saliency.py`, `scripts/09_saliency_figures.py`, figures in `reports/m7/`). Finding: encoder attention *sharpens*
+      as ACT's success collapses → the failure is downstream of vision; a laptop-speed probe with no simulator rollouts

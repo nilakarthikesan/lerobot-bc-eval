@@ -138,6 +138,36 @@ grasp, never on the approach:
 
 ![heatmap](m5/aloha_ep047_error_heatmap.png)
 
+### 5.5 The ACT collapse is downstream of vision (occlusion saliency, M7)
+
+Closed-loop screening (5.1) is the only tool above that tells a good checkpoint from a bad
+one, and it costs hours of rollouts. As a **pre-deployment trust probe** we asked a
+cheaper question: *does the vision encoder's attention degrade before task performance
+does?* Occlusion sensitivity (slide a grey patch, measure how far the predicted action
+chunk moves; [Zeiler & Fergus 2014](https://arxiv.org/abs/1311.2901)) answers it from a
+laptop with **zero simulator rollouts** ([saliency notes](../NOTES_SALIENCY.md),
+`scripts/08_saliency.py`).
+
+The hypothesis was wrong in a *useful* way. Attention does not degrade — it **sharpens**
+with training for both policies (focus and task-region overlap rise). So ACT's 20K→100K
+collapse (20%→0%) happens **while its encoder keeps getting sharper and stays locked on the
+insertion zone** (overlap 0.76→0.79). That **localizes the failure downstream of the
+encoder** — the action decoder under closed-loop covariate shift — corroborating 5.2 with
+independent evidence. Diffusion, the control, behaves oppositely: its attention tightens
+onto the pusher and T-block exactly as its success climbs (25K scattered/near-chance →
+200K sharp, 50%).
+
+![metric vs step](m7/F2_metric_vs_step.png)
+
+Two honest caveats make this a trust *signal*, not a verdict: the correlation with success
+is **negative for ACT but positive for Diffusion** (r −0.82 vs +0.94 on overlap), so a
+single "more focused = safer" threshold would mislead; and the ACT screen uses n=10, so
+only the 20K-vs-100K endpoints are load-bearing. The deployable takeaway is the
+**divergence** — encoder still improving while success falls ⇒ look at the controller, not
+the camera. The Diffusion 25K-vs-200K control panel (`reports/m7/F3_diffusion_25k_vs_200k.png`)
+and the ACT 20K-vs-100K maps (`reports/m7/F1_act_20k_vs_100k.png`) show the attention
+directly.
+
 ## 6. Visualizations
 
 All figures come from saved deployment arrays — no re-inference
