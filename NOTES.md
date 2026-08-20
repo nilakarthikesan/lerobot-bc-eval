@@ -24,13 +24,14 @@ M4's arrays, with a frame-by-frame verification protocol) lives in
 
 ### What a policy is
 
-A **policy** is the function that decides what the robot does: it maps what the robot
+A **Policy** is the function that decides what the robot does: it maps what the robot
 currently perceives to the command it should send to its motors. Written as math:
 π(a | o) — a (possibly probabilistic) mapping from observations *o* to actions *a*.
 
 - **Observation** = camera image + *proprioception* (the robot's sense of its own body).
   - PushT: a 96×96 image + the 2D position of the pusher.
   - ALOHA: a 480×640 image + the 14 joint angles of the two arms.
+  
 - **Action** = the motor command.
   - PushT: a 2D target position (the action *is* the end-effector target).
   - ALOHA: 14 target joint angles, sent 50×/second.
