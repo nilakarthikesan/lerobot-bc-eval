@@ -1,7 +1,6 @@
-# Behavior Cloning with LeRobot: ACT and Diffusion Policy, Trained, Deployed, and Dissected
+# Behavior Cloning with LeRobot: Training and Simulation Evaluation
 
-*Final report. All numbers trace to files in this repo (`outputs/`, `reports/`); the
-per-stage design notes linked throughout contain the full decision logs.*
+Results report. Figures and run descriptions are committed; raw arrays and evaluation logs under `outputs/` are local artifacts and are not included in the GitHub tree. Preserve them when reproducing the reported measurements.
 
 ---
 
@@ -27,8 +26,7 @@ Design doc: [DESIGN.md](../DESIGN.md). Stage notes: [pipeline](../NOTES_PIPELINE
 Naive behavior cloning (a network regressing one action per observation) fails for two
 well-documented reasons: single-step errors **compound** during rollout (covariate
 shift, [DAgger](https://arxiv.org/abs/1011.0686)), and human demonstrations are
-**multimodal** — averaging two valid strategies produces an invalid one. The two
-policies we trained are the field's main answers:
+**multimodal** — averaging two valid strategies produces an invalid one. This project evaluates two established approaches:
 
 - **[ACT](https://arxiv.org/abs/2304.13705)** (Action Chunking with Transformers,
   51.6 M params here): a CVAE + transformer that predicts a **chunk of 100 future
@@ -100,15 +98,11 @@ The checkpoint screens (success % over 10 fixed-seed episodes per banked checkpo
 |---|---|---|---|---|---|---|---|---|
 | success | 20 % | 0 % | 30 % | 20 % | 40 % | 20 % | 30 % | **50 %** |
 
-Same pipeline, **opposite outcomes**: ACT's best checkpoint is its *earliest* and its
-final checkpoint is unusable, while diffusion keeps improving to the end. Without
-rolling out every checkpoint ([robomimic](https://arxiv.org/abs/2108.03298)'s thesis),
-we would have shipped a 0 %-success ACT.
+In these screens, the earliest ACT checkpoint has the highest measured success and the final one scores 0% over ten episodes. The final Diffusion checkpoint has the highest screen score. The intermediate Diffusion results are not monotonic. The small screens support checkpoint selection for these runs, rather than a general training trend.
 
 ### 5.2 Open-loop fidelity ≠ closed-loop competence
 
-ACT's open-loop imitation kept improving with training while its rollout success
-collapsed (5.1). Prediction error also compounds smoothly with depth for both
+ACT's documented imitation loss decreased while its checkpoint-screen success declined (5.1). Prediction error also compounds smoothly with depth for both
 policies — yet the depth curves alone say nothing about which checkpoint survives
 deployment. This is the covariate-shift gap the literature warns about
 ([DAgger](https://arxiv.org/abs/1011.0686), [arXiv:2604.02523](https://arxiv.org/abs/2604.02523)),
@@ -123,8 +117,7 @@ The motivating story for diffusion is multimodality, so we sampled the policy 8 
 to a tight bundle**: median across-sample spread 1.6 px, maximum 7.7 px, in a 512-px
 workspace — with the largest spreads at episode-start approach states, exactly where
 ambiguity should live. [Independent experiments by Alexander Soare](https://github.com/alexander-soare/little_experiments/blob/main/action_multimodality.md)
-reach the same conclusion at K≈100. The policy earns its 48 % by being decisive, not
-by hedging:
+reach the same conclusion at K≈100. These observations describe sample dispersion on the probed states. They do not explain the policy's 48% rollout success:
 
 ![fans](m5/pusht_fans_top_spread.png)
 
@@ -133,40 +126,21 @@ by hedging:
 ACT's open-loop error, laid out by anchor state × prediction depth, shows **diagonal**
 streaks — lines of constant *event time*. The grasp/contact moments (frames ~50–250)
 are hard to predict from *any* earlier state, while the post-transfer hold phase is
-near-zero error. That is the open-loop echo of why closed-loop insertions fail at the
-grasp, never on the approach:
+near-zero error. This suggests contact-phase prediction is difficult in this replay. Open-loop error alone does not establish where closed-loop failures occur:
 
 ![heatmap](m5/aloha_ep047_error_heatmap.png)
 
-### 5.5 The ACT collapse is downstream of vision (occlusion saliency, M7)
+### 5.5 Occlusion sensitivity and rollout performance
 
-Closed-loop screening (5.1) is the only tool above that tells a good checkpoint from a bad
-one, and it costs hours of rollouts. As a **pre-deployment trust probe** we asked a
-cheaper question: *does the vision encoder's attention degrade before task performance
-does?* Occlusion sensitivity (slide a grey patch, measure how far the predicted action
-chunk moves; [Zeiler & Fergus 2014](https://arxiv.org/abs/1311.2901)) answers it from a
-laptop with **zero simulator rollouts** ([saliency notes](../NOTES_SALIENCY.md),
-`scripts/08_saliency.py`).
+The occlusion probe slides a gray patch across an image and measures how much the full policy's predicted action chunk changes. It uses held-out observations and no simulator rollouts. [NOTES_SALIENCY.md](../NOTES_SALIENCY.md) records the setup, checks, and checkpoint-level measurements.
 
-The hypothesis was wrong in a *useful* way. Attention does not degrade — it **sharpens**
-with training for both policies (focus and task-region overlap rise). So ACT's 20K→100K
-collapse (20%→0%) happens **while its encoder keeps getting sharper and stays locked on the
-insertion zone** (overlap 0.76→0.79). That **localizes the failure downstream of the
-encoder** — the action decoder under closed-loop covariate shift — corroborating 5.2 with
-independent evidence. Diffusion, the control, behaves oppositely: its attention tightens
-onto the pusher and T-block exactly as its success climbs (25K scattered/near-chance →
-200K sharp, 50%).
+The documented maps become more concentrated and overlap the moving task region more as training progresses. For ACT this co-occurs with declining checkpoint-screen success; for Diffusion the trend is positive. The reported overlap correlations are −0.82 for ACT and +0.94 for Diffusion, based on five and three checkpoint observations respectively.
 
-![metric vs step](m7/F2_metric_vs_step.png)
+![Metric versus training step](m7/F2_metric_vs_step.png)
 
-Two honest caveats make this a trust *signal*, not a verdict: the correlation with success
-is **negative for ACT but positive for Diffusion** (r −0.82 vs +0.94 on overlap), so a
-single "more focused = safer" threshold would mislead; and the ACT screen uses n=10, so
-only the 20K-vs-100K endpoints are load-bearing. The deployable takeaway is the
-**divergence** — encoder still improving while success falls ⇒ look at the controller, not
-the camera. The Diffusion 25K-vs-200K control panel (`reports/m7/F3_diffusion_25k_vs_200k.png`)
-and the ACT 20K-vs-100K maps (`reports/m7/F1_act_20k_vs_100k.png`) show the attention
-directly.
+Occlusion sensitivity is an end-to-end input perturbation measurement, rather than a direct measurement of encoder attention or visual representation quality. It cannot localize failure to the action decoder or exclude a perception failure. Patch size, replacement color, sampling noise, and out-of-distribution masked images can affect the result.
+
+These small exploratory comparisons do not validate a pre-deployment trust threshold. A useful follow-up would test matched checkpoints on larger rollout sets and use controlled interventions to separate perception, action prediction, and state-distribution effects.
 
 ## 6. Visualizations
 
@@ -217,14 +191,10 @@ Issue IDs D1–D12 and V-A–V-E in [NOTES_DEPLOYMENT.md](../NOTES_DEPLOYMENT.md
 
 ## 8. Limitations and next steps
 
-- **48 % vs the official card's ~65 %** (diffusion, PushT): attributable to training
-  on 185 of 206 episodes (21 held out for the replay study), a different seed, and
-  ±~14 % binomial noise at n=50. Stated, not excused.
-- **ACT at 20 %** is in the ballpark of the original ACT paper's human-demo insertion
-  results; closing the gap would start from earlier/denser checkpoints (10K–30K) and
-  contact-phase analysis rather than more training — more training made it worse.
+- The reported 48% Diffusion success differs from the reference model card. Training data, configuration, and sampling uncertainty may contribute; this project has not isolated their effects with controlled ablations.
+- ACT's 20% confirmation uses the 20K checkpoint. The 100K checkpoint scored 0% only in the ten-episode screen. Denser early checkpoints and controlled contact-phase analysis are proposed follow-ups.
 - **Researched backlog** ([visualization notes §7](../NOTES_VISUALIZATION.md)):
-  K≈100 Monte-Carlo fans, an observation-noise probe that provably re-elicits
+  K≈100 Monte-Carlo fans, an observation-noise probe to investigate
   multimodality, and a [Rerun](https://github.com/rerun-io/rerun)-based synced
   video + prediction inspector.
 

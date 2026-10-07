@@ -147,7 +147,7 @@ full detail in [NOTES_DEPLOYMENT.md](../NOTES_DEPLOYMENT.md) §4):
 | 125K | 40% | |
 | 150K | 20% | |
 | 175K | 30% | |
-| **200K (final)** | **50%** | ✓ — confirmed **48% over 50 episodes** (DDPM-100) |
+| **200K (final)** | **50%** |  — confirmed **48% over 50 episodes** (DDPM-100) |
 
 Unlike ACT (whose best checkpoint was the *earliest*), diffusion's rollout success keeps
 improving with training — the final model wins.

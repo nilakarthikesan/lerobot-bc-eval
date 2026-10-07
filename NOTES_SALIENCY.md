@@ -1,4 +1,4 @@
-# Saliency Notes — Stage 6 / M7: CNN attention as a pre-deployment trust signal
+# Occlusion Sensitivity Notes — Stage 6 / M7
 
 The first stage that asks **why** a checkpoint fails rather than **whether** it does. Same
 discipline as the other stage notes: design before code, every decision with a reason, a
@@ -178,34 +178,11 @@ Metrics per checkpoint (`scripts/09_saliency_figures.py --metrics`; figures in
 Pearson r(success, ·): ACT focus **−0.76**, overlap **−0.82**; Diffusion focus/overlap
 **+0.94**.
 
-**The hypothesis was wrong in an informative way.** M7 predicted the *encoder's attention
-would degrade before task performance*. It does not. For **both** policies attention
-*sharpens* with training — the maps concentrate and land more on the moving region as
-steps increase. Three consequences:
+The maps become more concentrated and overlap the moving task region more across the sampled checkpoints. This does not track rollout success in the same direction for ACT and Diffusion.
 
-1. **ACT's collapse is not a vision failure.** From 20K (20% success) to 100K (0%) the
-   encoder's focus and task-overlap stay high and even tick *up* (5.8→6.4, 0.76→0.79). The
-   eyes keep getting sharper while the policy stops succeeding. This **localizes the 100K
-   failure downstream of the encoder** — the action decoder under closed-loop covariate
-   shift — consistent with the M4 open-loop/closed-loop divergence finding. A "null" result
-   for the original hypothesis, but a positive result for *diagnosis*.
+The probe measures changes in the full policy's action output after an image perturbation. Calling it encoder attention is an interpretation, not a direct measurement. A concentrated map does not prove visual representations improved, and it does not locate failure downstream of the encoder. Controlled perception/decoder interventions and larger rollout sets are needed to test those hypotheses.
 
-2. **A single attention threshold does not transfer.** The correlation with success is
-   **negative for ACT and positive for Diffusion**. "More focused = more trustworthy" is
-   false as a universal rule; sharper attention is a marker of *training progress*, not of
-   *closed-loop reliability* per se. Reporting this honestly is the point of a
-   trustworthy-evaluation lens — a naive probe would have shipped a misleading green light.
-
-3. **The control behaves as a control should.** Diffusion's attention genuinely tracks its
-   (noisy, rising) success: the 25K map is diffuse and near chance-level overlap, the 200K
-   map is tightly on the pusher and T-block (`F3`). This is the sanity that the metric
-   measures something real rather than an artifact.
-
-**The deployable signal that survives.** Not the absolute focus value, but the
-**divergence**: when the vision encoder is still improving (or stable and task-focused)
-yet closed-loop success is falling, the failure is in the controller, not perception — and
-that divergence is visible from a laptop-speed probe with **zero simulator rollouts**. It
-narrows *where* to look before spending hours on eval.
+The five ACT and three Diffusion observations are exploratory. The checkpoint-screen success estimates use ten episodes, so the correlations should not be treated as validated trust signals or causal diagnoses. The maps can guide follow-up inspection of observation dependence, but cannot replace rollout evaluation.
 
 ## 8. References
 

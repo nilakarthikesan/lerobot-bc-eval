@@ -1,53 +1,47 @@
-# lerobot-bc-eval
+# LeRobot Behavior Cloning Evaluation
 
-Behavior cloning with [LeRobot](https://github.com/huggingface/lerobot): train **ACT** and
-**Diffusion Policy** on LeRobot datasets, then run a mock deployment on held-out episodes
-and visualize the policies' end-effector predictions against ground truth.
+Training and evaluation scripts for ACT on simulated ALOHA insertion and Diffusion Policy on PushT, using [LeRobot](https://github.com/huggingface/lerobot). The project compares held-out action prediction with closed-loop simulation performance and visualizes policy errors across checkpoints.
 
-**→ Final report: [reports/REPORT.md](reports/REPORT.md)** (results, findings, and the
-LeRobot issues log).
+My work in this repository covers dataset inspection, training configuration, checkpoint evaluation, prediction visualization, and occlusion-sensitivity analysis. The policy algorithms, datasets, and simulators come from the cited upstream projects.
 
-See [DESIGN.md](DESIGN.md) for the full system design, [NOTES.md](NOTES.md) for
-per-stage learning notes, [NOTES_PIPELINE.md](NOTES_PIPELINE.md) for the pipeline
-implementation deep-dive, and the [`training/`](training/) folder for the training
-hyperparameter decision log ([NOTES_TRAINING.md](training/NOTES_TRAINING.md)) plus
-per-policy deep-dives ([DIFFUSION_POLICY.md](training/DIFFUSION_POLICY.md),
-[ACT_POLICY.md](training/ACT_POLICY.md)).
+## Documented results
 
-## Quickstart
+The [report](reports/REPORT.md) records 50-episode simulation confirmations of 48% success for Diffusion Policy at 200K training steps and 20% for ACT at 20K steps. ACT's final 100K checkpoint scored 0% in a separate 10-episode screen. The ACT 20% result belongs to the early checkpoint.
+
+Open-loop evaluation uses held-out demonstrations: PushT episodes 185–205 and ALOHA episodes 45–49. These observations come from the demonstrator's state distribution, while closed-loop simulation exposes each policy to states produced by its own actions. The two measurements answer different questions.
+
+Occlusion maps describe how image perturbations affect predicted action chunks. Concentrated maps co-occur with declining ACT success in these runs; they do not establish that the encoder improved or that failures originate in the action decoder. See [NOTES_SALIENCY.md](NOTES_SALIENCY.md).
+
+The repository includes figures and run documentation. Model checkpoints are hosted on Hugging Face; local `outputs/` evaluation arrays and logs are not committed. Retain those artifacts when reproducing a result. Results apply to these simulation tasks and checkpoints; physical robot performance was not evaluated.
+
+## Setup and dataset exploration
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# Stage 1: explore the datasets
 python scripts/01_explore_dataset.py --repo-id lerobot/pusht
-
-# Stage 2: smoke-test training locally (Apple Silicon)
-lerobot-train --policy.type=diffusion --dataset.repo_id=lerobot/pusht \
-  --steps=2000 --batch_size=32 --policy.device=mps --output_dir=outputs/smoke_diffusion
 ```
 
-Full training runs ran on Hugging Face Jobs (`a100-large`) — see `scripts/02_train.sh`
-(`hfjobs-*` modes) and [training/NOTES_TRAINING.md](training/NOTES_TRAINING.md).
+For a local training smoke run on Apple Silicon:
 
-## Trained models
+```bash
+lerobot-train --policy.type=diffusion --dataset.repo_id=lerobot/pusht \
+  --steps=2000 --batch_size=32 --policy.device=mps \
+  --output_dir=outputs/smoke_diffusion
+```
 
-- Diffusion / PushT: [nilakarthikesan/diffusion_pusht](https://huggingface.co/nilakarthikesan/diffusion_pusht) — 200K steps, 8 checkpoints
-- ACT / ALOHA insertion: [nilakarthikesan/act_aloha_insertion](https://huggingface.co/nilakarthikesan/act_aloha_insertion) — 100K steps, 5 checkpoints
+Full training commands are in [scripts/02_train.sh](scripts/02_train.sh). Hugging Face Jobs modes require account access and paid compute. [Training notes](training/NOTES_TRAINING.md) document configurations and compatibility issues.
 
-## Status
+## Artifacts and entry points
 
-- [x] M0 environment; pusht dataset loads + video decodes (lerobot 0.6.0, torch 2.11, Python 3.12)
-- [x] M1 dataset EDA in `reports/eda/` (split fixed: pusht 0-184 train / 185-205 test; aloha 0-44 / 45-49)
-- [x] M2 smoke training runs (local MPS + HF Jobs cloud validation)
-- [x] M3 full ACT + diffusion training runs (both complete, checkpoints on the Hub)
-- [x] M4 mock deployment ([NOTES_DEPLOYMENT.md](NOTES_DEPLOYMENT.md)): open-loop replay + checkpoint screens + 50-ep confirms.
-      Diffusion **48%** success (200K ckpt, final); ACT **20%** (20K ckpt — the *earliest*, final scored 0%)
-- [x] M5 prediction visualizations ([NOTES_VISUALIZATION.md](NOTES_VISUALIZATION.md)): depth curves, PushT overlays/fans/video,
-      ALOHA joint panels + error heatmap in `reports/m5/`, plus the interactive Viser 3D EE scene
-      (`python scripts/05_viser_aloha.py` → link printed)
-- [x] M6 writeup ([reports/REPORT.md](reports/REPORT.md)) — findings, figures, and the curated LeRobot issues log; W1–W4 verification passed ([NOTES_WRITEUP.md](NOTES_WRITEUP.md))
-- [x] M7 CNN saliency trust probe ([NOTES_SALIENCY.md](NOTES_SALIENCY.md)): occlusion-sensitivity maps on 5 ACT + 3 Diffusion checkpoints
-      (`scripts/08_saliency.py`, `scripts/09_saliency_figures.py`, figures in `reports/m7/`). Finding: encoder attention *sharpens*
-      as ACT's success collapses → the failure is downstream of vision; a laptop-speed probe with no simulator rollouts
+- [Diffusion / PushT checkpoints](https://huggingface.co/nilakarthikesan/diffusion_pusht): 200K-step training run.
+- [ACT / ALOHA checkpoints](https://huggingface.co/nilakarthikesan/act_aloha_insertion): 100K-step training run.
+- [scripts/03_mock_deploy.py](scripts/03_mock_deploy.py): held-out open-loop replay.
+- [scripts/03b_screen_checkpoints.sh](scripts/03b_screen_checkpoints.sh): closed-loop checkpoint screening.
+- [scripts/04_visualize.py](scripts/04_visualize.py): saved prediction plots and overlays.
+- [scripts/05_viser_aloha.py](scripts/05_viser_aloha.py): interactive end-effector visualization.
+- [scripts/08_saliency.py](scripts/08_saliency.py): image occlusion probe.
+- [reports/REPORT.md](reports/REPORT.md): results, limitations, references, and issues encountered.
+
+The two policies use different tasks, observations, action spaces, and training schedules. Their success rates are not a controlled comparison of ACT against Diffusion Policy.

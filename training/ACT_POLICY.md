@@ -142,7 +142,7 @@ with `gym_aloha`) and pick the best there.
 
 | Checkpoint | Screen success | Selected? |
 |-----------|----------------|-----------|
-| **20K (earliest)** | **20%** | ✓ — confirmed **20% over 50 episodes** |
+| **20K (earliest)** | **20%** |  — confirmed **20% over 50 episodes** |
 | 40K | 10% | |
 | 60K | 10% | |
 | 80K | 10% | |

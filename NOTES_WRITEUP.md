@@ -80,9 +80,9 @@ in the stage notes, linked.
   confirm) is either introduced in place or only referenced as pointers into the
   stage notes.
 
-## 5. Definition of done (the finish line)
+## 5. Report completion criteria
 
 1. `REPORT.md` written per §2, W1–W4 pass, pushed.
 2. README links the report at the top; M6 checked off.
 3. Optional (backlog, not blocking): K≈100 fan probe, Rerun inspector, PushT-in-Viser.
-4. Send Irmak the repo link + report link + Viser run command.
+4. Include repository, report, and visualization entry points in the project handoff.

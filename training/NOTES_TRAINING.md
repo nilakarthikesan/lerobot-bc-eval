@@ -140,7 +140,7 @@ Ground-truth 0.6.0 defaults, with notes on where they diverge from the RSS-2023 
 | Backbone | `use_group_norm` | **False** | classic DP used GroupNorm (BatchNorm stats are unreliable with EMA + receding horizon). 0.6.0 default is False and still reproduces 65%. **Keep False**, flag as a possible ablation. |
 | Backbone | `crop_shape` | None (no crop) | classic DP random-cropped 96→84. Default now does no crop. **Keep no-crop** (matches the validated card); note as ablation. |
 | Backbone | `use_separate_rgb_encoder_per_camera` | True | PushT has 1 camera, so moot; keep |
-| U-Net | `down_dims` / `kernel_size` / `n_groups` | (512,1024,2048) / 5 / 8 | keep (`horizon` must stay a multiple of 2^len(down_dims)=8; 64 ✓) |
+| U-Net | `down_dims` / `kernel_size` / `n_groups` | (512,1024,2048) / 5 / 8 | keep (`horizon` must stay a multiple of 2^len(down_dims)=8; 64 ) |
 | Noise | `noise_scheduler_type` | DDPM | **train with DDPM** |
 | Noise | `num_train_timesteps` | 100 | keep |
 | Noise | `beta_schedule` | squaredcos_cap_v2 | the iDDPM cosine schedule the DP paper found best; keep |
